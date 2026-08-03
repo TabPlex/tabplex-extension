@@ -1,0 +1,45 @@
+name: "CI"
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.33.2
+          run_install: false
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Scan secrets
+        run: pnpm scan:secrets
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
+      - name: Check types
+        run: |
+          pnpm typecheck
+          pnpm typecheck:unused
+          pnpm typecheck:strictnull:core
+      - name: Run tests
+        run: pnpm test
+      - name: Build Chrome production extension
+        run: pnpm build:chrome
+      - name: Build Edge production extension
+        run: pnpm build:edge
+      - name: Verify production artifacts
+        run: pnpm verify:artifacts

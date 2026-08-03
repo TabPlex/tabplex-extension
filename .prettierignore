@@ -1,0 +1,4 @@
+.plasmo/
+build/
+coverage/
+pnpm-lock.yaml

@@ -1,0 +1,477 @@
+{
+  "settings": {
+    "title": "Settings",
+    "description": "Manage appearance, controls, local storage, and recovery.",
+    "sections": {
+      "general": "General",
+      "appearance": "Appearance",
+      "control": "Control",
+      "developer": "Developer",
+      "about": "About"
+    },
+    "recoveryCenter": {
+      "title": "Recovery Center",
+      "description": "Backup files are read only on this device and are not uploaded. You can verify and preview every import before it changes data.",
+      "exportTitle": "Export a complete backup",
+      "exportDesc": "Includes workspaces, flat tab lists, tab groups, timeline, notes, linked resources, and portable settings without site icons, plus a SHA-256 integrity check.",
+      "export": "Export local file",
+      "exporting": "Exporting…",
+      "exported": "Exported {{count}} workspaces.",
+      "exportWarnings": "{{count}} items could not be safely included. Nothing was downloaded yet; review the omissions first.",
+      "exportAnyway": "Export with omissions",
+      "importTitle": "Verify a backup file",
+      "importDesc": "Supports current v3 files and remains compatible with legacy v1/v2 files. Reading a file does not change your data.",
+      "chooseFile": "Choose JSON file",
+      "checking": "Verifying…",
+      "previewTitle": "Structure verified",
+      "integrityVerified": "SHA-256 checksum matches · source not verified",
+      "integrityLegacy": "Legacy file · no checksum",
+      "technicalDetails": "Import plan technical details",
+      "modeTitle": "Restore mode",
+      "modes": {
+        "merge": {
+          "title": "Safe merge (recommended)",
+          "desc": "Keep current data and remap conflicting IDs and names."
+        },
+        "replace": {
+          "title": "Full replacement",
+          "desc": "Replace workspaces from the file and clear runtime window bindings, pending actions, and Agent sessions."
+        }
+      },
+      "includeSettings": "Restore portable settings too",
+      "includeSettingsHint": "Includes language, theme, accent, and sorting. Agent control and developer switches are never imported.",
+      "replaceConfirm": "I understand this replaces current workspace data. TabPlex will roll back automatically if the transaction fails.",
+      "restore": "Start restore",
+      "restoring": "Restoring; keep this page open…",
+      "currentUnavailable": "Current data exceeds the safe preview range. You can still use Replace all for a rescue restore.",
+      "mergeUnavailable": "Current data could not be read completely, so a safe merge is unavailable.",
+      "planSummary": "Workspace IDs remapped {{remappedWorkspaces}} · names adjusted {{renamedWorkspaces}}",
+      "warnings": "{{count}} compatibility notices",
+      "moreWarnings": "{{count}} more notices are collapsed to protect interface performance.",
+      "counts": {
+        "workspaces": "Workspaces",
+        "tabs": "Tabs",
+        "notes": "Notes",
+        "resources": "Links"
+      },
+      "warningCodes": {
+        "legacy-window-slots-flattened": "Legacy multi-window layouts were merged into flat tab lists in their saved order",
+        "legacy-v1-unverified": "Legacy file has no integrity checksum",
+        "legacy-v1-missing-contexts": "Legacy file has no notes or linked resources",
+        "invalid-tab-dropped": "Invalid or unsafe tab was ignored",
+        "invalid-resource-dropped": "Invalid linked resource was ignored",
+        "duplicate-resource-dropped": "Duplicate linked resource was ignored",
+        "orphan-context-dropped": "Context without a workspace was ignored"
+      },
+      "errors": {
+        "generic": "This backup could not be processed. Existing data was not replaced; check the file and try again.",
+        "note-save-failed": "A note is still unsaved, so export or restore was stopped.",
+        "settings-save-failed": "A setting is still unsaved, so export or import was stopped.",
+        "backup-too-large": "The file exceeds the 8 MiB safety limit.",
+        "backup-string-budget-exceeded": "Text content in the backup exceeds the 6 MiB safety limit.",
+        "backup-current-unavailable": "Current data could not be read completely. Choose Replace all for a rescue restore.",
+        "invalid-json": "The file is not valid JSON.",
+        "invalid-schema": "This is not a TabPlex backup file.",
+        "unsupported-version": "This backup version is not supported.",
+        "unsupported-integrity": "The file uses an unsupported integrity format.",
+        "invalid-checksum": "The checksum format is invalid.",
+        "checksum-mismatch": "SHA-256 verification failed. The file may be damaged or modified.",
+        "quotaLocal": "There is not enough local storage space; nothing was restored.",
+        "quotaSync": "There is not enough browser-sync space; nothing was restored.",
+        "backup-restore-recovered-previous-transaction": "The previous interrupted restore was handled first. Review and confirm this import again.",
+        "backup-restore-journal-invalid": "The recovery journal could not be read safely, so the operation stopped.",
+        "backup-restore-failed": "Restore failed. Existing data was preserved or rolled back."
+      }
+    },
+    "appearance": {
+      "theme": "Theme",
+      "accentColor": "Accent Color",
+      "custom": "Custom",
+      "language": "Language"
+    },
+    "shortcuts": {
+      "title": "Shortcuts",
+      "desc": "Manage extension shortcuts in Chrome.",
+      "manage": "Open Chrome settings",
+      "unavailable": "This browser version cannot read shortcut details inside the extension yet. Please check and edit them in chrome://extensions/shortcuts.",
+      "noCommands": "No configurable extension commands are exposed by the browser.",
+      "actions": {
+        "goHome": "Go to Home",
+        "newWorkspace": "New Workspace",
+        "prevWorkspace": "Previous Workspace",
+        "nextWorkspace": "Next Workspace"
+      },
+      "default": "Default:",
+      "record": "Record Shortcut",
+      "reset": "Reset Default",
+      "status": {
+        "restored": "Restored to default",
+        "cleared": "Cleared (no shortcut)",
+        "invalid": "Invalid combination, please try again",
+        "updated": "Shortcut updated: {{shortcut}}",
+        "waiting": "Waiting for keys...",
+        "recording": "Press new keys, Esc to cancel",
+        "cancelled": "Cancelled"
+      }
+    },
+    "aiNaming": {
+      "title": "AI Naming",
+      "description": "The local model is prepared on first use",
+      "currentStatus": "Status",
+      "backgroundHint": "You can close Settings. Chrome will continue preparing in the background.",
+      "sizeNote": "Chrome manages download, updates, and cleanup itself. The extension only gets stage information and percentage progress, not total bytes or downloaded bytes.",
+      "download": "Download and enable",
+      "enable": "Enable AI naming",
+      "resume": "Continue setup",
+      "retry": "Retry",
+      "enabled": "Enabled",
+      "preparingAction": "Preparing",
+      "unsupported": "Not supported",
+      "ready": "Ready",
+      "refresh": "Refresh",
+      "status": {
+        "checking": "Checking",
+        "ready": "Ready",
+        "downloadable": "Not enabled",
+        "downloading": "Downloading {{percent}}%",
+        "downloadingUnknown": "Downloading",
+        "preparing": "Preparing",
+        "unavailable": "Not supported on this device",
+        "error": "Setup failed"
+      }
+    },
+    "control": {
+      "agentControl": {
+        "title": "Agent control",
+        "desc": "Let local Agents use a Skill to operate workspaces, tabs, and settings while TabPlex validates every safe write.",
+        "copyInstructions": "Create Skill",
+        "copied": "Instructions copied",
+        "copyFailed": "Copy failed. Please try again.",
+        "failed": "Unable to update Agent control.",
+        "status": {
+          "disabled": "Disabled",
+          "connecting": "Connecting to local component…",
+          "connected": "Local component connected",
+          "unavailable": "Local component not connected"
+        }
+      }
+    },
+    "developer": {
+      "onboarding": {
+        "title": "Onboarding",
+        "desc": "Re-run onboarding seed data.",
+        "hint": "Re-run will create a new guide workspace for debugging.",
+        "reseed": "Re-run onboarding",
+        "triggered": "Onboarding will re-run. Close settings to view."
+      },
+      "logs": {
+        "title": "Verbose logs",
+        "desc": "Also print logs to the console for debugging."
+      }
+    },
+    "about": {
+      "desc": "TabPlex is a workspace tool to help you manage browser tabs efficiently.",
+      "feedback": {
+        "title": "Feedback",
+        "desc": "Tell us what went wrong or what you would like TabPlex to do next. Include logs with bug reports to help us diagnose issues faster.",
+        "copy": "Copy logs",
+        "email": "Email feedback",
+        "copied": "Logs copied.",
+        "copyFailed": "Copy failed.",
+        "mailHint": "Logs copied. Paste them into the email.",
+        "emailSubject": "TabPlex Feedback/Suggestion (v{{version}})",
+        "emailBody": "Type: Issue / Suggestion (keep one)\nVersion: {{version}}\nTimestamp: {{timestamp}}\n\nDescribe the issue or suggestion here. Logs have been copied to your clipboard—paste them below."
+      }
+    }
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light",
+    "system": "Browser"
+  },
+  "common": {
+    "skipToContent": "Skip to main content",
+    "loading": "Loading…",
+    "switching": "Switching…",
+    "switchFailed": "Switch failed. Please try again.",
+    "notSet": "Not set",
+    "close": "Close",
+    "cancel": "Cancel",
+    "unnamedWorkspace": "Unnamed Workspace",
+    "pageCount": "{{count}} pages",
+    "pageCount_one": "{{count}} page",
+    "lastUsed": "Used {{time}}",
+    "createdAt": "Created {{time}}",
+    "current": "Current",
+    "pinned": "Pinned",
+    "visitWebsite": "Visit website"
+  },
+  "storage": {
+    "title": "Storage",
+    "localTitle": "Local storage",
+    "usage": "{{used}} / {{limit}}",
+    "trashUsage": "Trash uses {{used}}",
+    "localHint": "Chrome limit {{limit}}.",
+    "reading": "Reading…",
+    "unavailable": "Storage usage is temporarily unavailable",
+    "backup": {
+      "title": "Local backup",
+      "desc": "Export or import workspaces, tabs, timeline, notes, and portable settings. Files stay on this device.",
+      "export": "Export",
+      "exporting": "Exporting…",
+      "import": "Import",
+      "importing": "Importing…",
+      "importConfirm": "Importing replaces current workspaces and portable settings from this file and disconnects existing Agent sessions. TabPlex rolls back automatically on failure. Continue?",
+      "exported": "Exported {{count}} workspaces.",
+      "exportedWithWarnings": "Exported {{count}} workspaces and safely ignored {{warningCount}} invalid items.",
+      "restored": "Restored {{count}} workspaces from a local backup.",
+      "restoredCleanupPending": "Restored {{count}} workspaces. The local recovery journal is waiting for automatic cleanup."
+    }
+  },
+  "home": {
+    "title": "TabPlex",
+    "actions": {
+      "goHome": "Go to Home",
+      "autoSavedWorkspace": "Auto Saved {{time}}"
+    },
+    "onboarding": {
+      "title": "Welcome to TabPlex",
+      "subtitle": "We saved your current tabs and created a quick-start workspace.",
+      "status": {
+        "currentSaved": "Saved your current window as a workspace",
+        "guideCreated": "Created a quick-start workspace with example pages"
+      },
+      "autoWorkspace": {
+        "name": "Auto Saved"
+      },
+      "guideWorkspace": {
+        "name": "Quick Start",
+        "note": "Quick start checklist\n1. Hover a workspace on the left to preview, click to switch\n2. Click the + button to create a workspace\n3. Drag browser tabs into a workspace\n4. Write notes on the right to capture context"
+      },
+      "steps": {
+        "switch": {
+          "title": "Switch workspaces",
+          "desc": "Hover a workspace to preview, click to switch."
+        },
+        "create": {
+          "title": "Create a workspace",
+          "desc": "Use the + button or type a name to create one."
+        },
+        "note": {
+          "title": "Write notes",
+          "desc": "Capture context, TODOs, or links per workspace."
+        }
+      },
+      "actions": {
+        "openGuide": "Open Quick Start",
+        "create": "New workspace",
+        "dismiss": "Got it"
+      }
+    },
+    "sidebar": {
+      "sectionTitle": "Workspaces",
+      "searchPlaceholder": "Search workspaces, tabs, notes, or create…",
+      "sort": {
+        "created": "By Created Time",
+        "lastUsed": "By Last Used",
+        "label": "Toggle Sort Order"
+      },
+      "clickSwitch": "Click to switch · Hover to preview",
+      "clickPreview": "Click to switch · Hover to preview",
+      "group": {
+        "results": "Search results",
+        "today": "Today",
+        "yesterday": "Yesterday",
+        "week": "Last 7 Days",
+        "earlier": "Earlier"
+      },
+      "match": {
+        "workspace": "Workspace",
+        "tab": "Tab",
+        "resource": "Linked resource",
+        "note": "Note"
+      },
+      "emptyMatch": "No matching workspaces. Press Enter to create.",
+      "emptyAll": "No workspaces yet. Try the create button above."
+    },
+    "workspace": {
+      "emptyState": "Select a workspace to view details.",
+      "switchBlocked": "Workspace is still opening. Please wait before switching.",
+      "tabsStillLoading": "Pages are still loading. Please wait before switching again.",
+      "actionBlocked": "The workspace is still opening. Wait until it finishes before making changes.",
+      "openHomeFailed": "The workspace switched, but Home could not be opened.",
+      "retryOpenHome": "Retry opening Home",
+      "nameLabel": "Rename workspace: {{name}}",
+      "actions": {
+        "timeline": "View Timeline",
+        "timelineTooltip": "Updated: {{time}} · {{date}}",
+        "noHistory": "No history",
+        "moveToTrash": "Move to Trash",
+        "trashing": "Moving to Trash…",
+        "trashHint": "Workspace will be moved to trash, can be restored later"
+      },
+      "iconPicker": {
+        "title": "Choose icon and color",
+        "random": "Random",
+        "none": "No icon",
+        "colorLabel": "Color",
+        "noColor": "No color",
+        "colorOption": "Color {{color}}"
+      },
+      "banner": {
+        "movedTabs": "Moved {{count}} pages",
+        "movedTabs_one": "Moved {{count}} page",
+        "moveFailed": "Move failed, please try again",
+        "switching": "Opening workspace, switching context…",
+        "createFailed": "Create or move failed, please try again"
+      }
+    },
+    "create": {
+      "popup": {
+        "placeholder": "Enter name and press Enter to create…",
+        "submit": "New Workspace",
+        "submitting": "Creating…",
+        "success": "Created. Workspace ready.",
+        "partialSuccess": "Workspace created, but this window did not finish switching.",
+        "error": "Failed to create. Please try again."
+      },
+      "inline": {
+        "placeholder": "Workspace name…",
+        "confirm": "Create workspace"
+      }
+    },
+    "tabs": {
+      "title": "Pages",
+      "selectionCount": "Selected {{count}} tabs",
+      "selectionCount_one": "Selected {{count}} tab",
+      "toggleSelect": "Select tabs",
+      "toggleExit": "Exit selection",
+      "removeTab": "Remove page",
+      "removeTabAria": "Remove {{title}} from workspace",
+      "excludeRecord": "Exclude page from recording",
+      "unexcludeRecord": "Include page in recording",
+      "excludedBadge": "Excluded",
+      "lastAccessed": "Last visited {{time}}",
+      "selectionActions": {
+        "moveToWorkspace": "Move to another workspace"
+      },
+      "empty": "This workspace has no pages yet. Drag tabs from your browser or use the button above to add."
+    },
+    "note": {
+      "title": "Notes",
+      "placeholder": "Capture a goal, conclusion, or next step; type @ to mention a page",
+      "editorLabel": "Workspace notes",
+      "clear": "Clear content",
+      "clearConfirm": "Press again to confirm",
+      "clearConfirmPrompt": "Clear this note?",
+      "togglePreview": "Switch to preview",
+      "toggleEdit": "Resume editing",
+      "empty": "No content yet",
+      "resizeLabel": "Resize note panel",
+      "resizeValue": "Note panel width: {{width}} pixels"
+    },
+    "contextHub": {
+      "title": "Context",
+      "toggle": "Context",
+      "addContext": "Add context",
+      "close": "Close context",
+      "linksDesc": "Pin the links this workspace needs.",
+      "linkPlaceholder": "Paste a link…",
+      "linkAdd": "Add",
+      "linkHint": "Supports Notion, Feishu, Docs, and more.",
+      "linkDuplicate": "Already added",
+      "linkInvalid": "Invalid link",
+      "linksEmpty": "No links yet",
+      "linkRemove": "Remove linked resource",
+      "captureDesc": "Add a quick note.",
+      "sections": {
+        "links": "Links",
+        "capture": "Notes"
+      }
+    },
+    "switchProgress": {
+      "opening": "Opening {{name}}",
+      "recoveryFailed": "The previous workspace switch could not be recovered safely",
+      "recoveryFailedHint": "Your current tabs will be kept. Confirm to discard the old recovery record and continue.",
+      "discardRecovery": "Keep tabs and unlock",
+      "discardingRecovery": "Unlocking…",
+      "discardRecoveryConfirm": "Keep every current tab and discard the previous switch recovery record? This will not close any tabs.",
+      "discardRecoveryFailed": "Unlock failed. Please try again."
+    },
+    "notice": {
+      "workspaceTrashed": "Moved to trash. You can restore it from Trash.",
+      "timelineRestoredAt": "Restored to {{time}}",
+      "timelineDiffSummary": "Tab changes +{{added}} / -{{removed}}"
+    },
+    "command": {
+      "title": "Command Palette",
+      "desc": "Quickly switch or create workspaces.",
+      "placeholder": "Type workspace name…",
+      "create": "Create workspace “{{name}}”",
+      "hint": "Enter",
+      "empty": "No matching workspaces.",
+      "footer": "Enter to switch · Esc to close"
+    },
+    "quickSwitcher": {
+      "createHint": "Enter to create",
+      "keyboardHint": "↑↓ select · Enter to open"
+    },
+    "trash": {
+      "title": "Trash",
+      "desc": "{{count}} workspaces · {{totalTabs}} pages total",
+      "desc_one": "{{count}} workspace · {{totalTabs}} pages total",
+      "searchPlaceholder": "Search deleted workspaces…",
+      "emptyAction": "Empty Trash",
+      "emptyConfirmTitle": "Empty trash?",
+      "emptyConfirmDesc": "Items in trash cannot be recovered.",
+      "emptyConfirmAction": "Empty Trash",
+      "emptyConfirmCancel": "Cancel",
+      "deleteConfirmTitle": "Delete permanently?",
+      "deleteConfirmDesc": "This will permanently delete “{{name}}”. This action cannot be undone.",
+      "deleteConfirmAction": "Delete Permanently",
+      "deleteConfirmCancel": "Cancel",
+      "tooltip": "Trash ({{count}})",
+      "tooltipEmpty": "Trash is empty",
+      "listEmpty": "No matching deleted workspaces.",
+      "restore": "Restore Workspace",
+      "deletePermanently": "Delete Permanently",
+      "deletedAt": "Deleted {{time}}",
+      "deletedAtShort": "Deleted",
+      "pill": "Deleted"
+    }
+  },
+  "timeline": {
+    "title": "TabPlex Timeline",
+    "backHome": "Back to Home",
+    "openWorkspace": "Open Workspace",
+    "loading": "Loading timeline…",
+    "empty": "No workspace available. Create or save one first.",
+    "meta": {
+      "historyCount": "{{count}} history entries",
+      "historyCount_one": "{{count}} history entry",
+      "recentUpdate": "Updated · {{time}}"
+    },
+    "snapshot": {
+      "title": "Snapshot",
+      "empty": "No pages in this snapshot."
+    },
+    "diff": {
+      "added": "+{{count}} tabs",
+      "added_one": "+{{count}} tab",
+      "removed": "-{{count}} tabs",
+      "removed_one": "-{{count}} tab",
+      "none": "No page changes",
+      "titleAdded": "Added",
+      "titleRemoved": "Removed",
+      "empty": "No page changes."
+    },
+    "pinned": "Pinned",
+    "restore": "Restore to this point",
+    "restoring": "Restoring…",
+    "restoreHint": "Your current state is saved first, so you can return to it from the timeline.",
+    "restoreError": "Restore failed. Your current state was not replaced. Try again.",
+    "restoreOpenError": "The point was restored, but this workspace could not be opened in the current window.",
+    "selectHint": "Select a timeline entry to view details.",
+    "emptyHistory": "No history yet. Switch or save workspace to generate history."
+  }
+}

@@ -1,0 +1,56 @@
+name: "Package Extension"
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      TABPLEX_RELEASE_DESCRIPTION: "TabPlex 是本地优先、可恢复的任务上下文工作区，可安全切换多窗口标签，并保留笔记与链接。"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 10.33.2
+          run_install: false
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify release candidate
+        run: |
+          pnpm scan:secrets
+          pnpm audit --audit-level high
+          pnpm typecheck
+          pnpm typecheck:unused
+          pnpm typecheck:strictnull:core
+          pnpm test
+      - name: Build Chrome extension
+        run: pnpm build:chrome
+      - name: Build Edge extension
+        run: pnpm build:edge
+      - name: Package Chrome extension
+        run: pnpm package:chrome
+      - name: Package Edge extension
+        run: pnpm package:edge
+      - name: Verify final release artifacts
+        run: pnpm verify:release-artifacts
+      - name: Rename package zips
+        run: |
+          mv build/chrome-mv3-prod.zip build/tabplex-chrome-${{ github.ref_name }}.zip
+          mv build/edge-mv3-prod.zip build/tabplex-edge-${{ github.ref_name }}.zip
+      - name: Upload browser package artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tabplex-${{ github.ref_name }}
+          path: |
+            build/tabplex-chrome-${{ github.ref_name }}.zip
+            build/tabplex-edge-${{ github.ref_name }}.zip

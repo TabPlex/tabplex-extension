@@ -1,0 +1,471 @@
+{
+  "settings": {
+    "title": "设置",
+    "description": "管理显示、控制、本地存储与恢复。",
+    "sections": {
+      "general": "常规",
+      "appearance": "显示",
+      "control": "控制",
+      "developer": "开发者",
+      "about": "关于"
+    },
+    "recoveryCenter": {
+      "title": "恢复中心",
+      "description": "备份文件只在本机读取，不会上传。导入前会先校验并展示变更预览。",
+      "exportTitle": "导出完整备份",
+      "exportDesc": "包含工作区、扁平标签列表、标签组、时间线、笔记、关联链接和可迁移设置，不包含站点图标，并附带 SHA-256 完整性校验。",
+      "export": "导出本地文件",
+      "exporting": "正在导出…",
+      "exported": "已导出 {{count}} 个工作区。",
+      "exportWarnings": "发现 {{count}} 项数据无法安全写入备份；尚未下载，请先查看遗漏。",
+      "exportAnyway": "了解遗漏，仍要导出",
+      "importTitle": "校验备份文件",
+      "importDesc": "支持当前 v3 文件，并兼容旧 v1/v2 文件。读取文件不会立即修改数据。",
+      "chooseFile": "选择 JSON 文件",
+      "checking": "正在校验…",
+      "previewTitle": "已通过结构校验",
+      "integrityVerified": "SHA-256 校验和匹配 · 不验证来源",
+      "integrityLegacy": "旧版文件 · 无校验和",
+      "technicalDetails": "导入计划技术细节",
+      "modeTitle": "恢复方式",
+      "modes": {
+        "merge": {
+          "title": "安全合并（推荐）",
+          "desc": "保留现有数据；冲突的 ID 和名称会自动重映射。"
+        },
+        "replace": {
+          "title": "完全替换",
+          "desc": "以文件为准替换工作区，并清除运行时窗口绑定、待执行操作和 Agent 会话。"
+        }
+      },
+      "includeSettings": "同时恢复可迁移设置",
+      "includeSettingsHint": "仅包含语言、主题、主题色和排序；不会导入 Agent 控制或开发者开关。",
+      "replaceConfirm": "我确认要替换当前工作区数据；若事务失败，TabPlex 会自动回滚。",
+      "restore": "开始恢复",
+      "restoring": "正在恢复，请勿关闭…",
+      "currentUnavailable": "当前数据超出安全预览范围；仍可使用“完全替换”进行救援恢复。",
+      "mergeUnavailable": "当前数据无法完整读取，因此不能安全合并。",
+      "planSummary": "工作区 ID 重映射 {{remappedWorkspaces}} · 名称调整 {{renamedWorkspaces}}",
+      "warnings": "{{count}} 条兼容性提示",
+      "moreWarnings": "另有 {{count}} 条提示未展开，以保护界面性能。",
+      "counts": {
+        "workspaces": "工作区",
+        "tabs": "标签页",
+        "notes": "笔记",
+        "resources": "链接"
+      },
+      "warningCodes": {
+        "legacy-window-slots-flattened": "旧版多窗口布局已按保存顺序合并为扁平标签列表",
+        "legacy-v1-unverified": "旧版文件没有完整性校验",
+        "legacy-v1-missing-contexts": "旧版文件不含笔记和关联链接",
+        "invalid-tab-dropped": "已忽略无效或不安全的标签页",
+        "invalid-resource-dropped": "已忽略无效关联链接",
+        "duplicate-resource-dropped": "已忽略重复关联链接",
+        "orphan-context-dropped": "已忽略没有对应工作区的上下文"
+      },
+      "errors": {
+        "generic": "无法处理该备份。原有数据未被替换，请检查文件后重试。",
+        "note-save-failed": "仍有笔记未保存，已停止导出或恢复。",
+        "settings-save-failed": "仍有设置未保存，已停止导出或导入。",
+        "backup-too-large": "文件超过 8 MiB 安全上限。",
+        "backup-string-budget-exceeded": "备份中的文本总量超过 6 MiB 安全上限。",
+        "backup-current-unavailable": "当前数据无法完整读取；请选择“完全替换”进行救援恢复。",
+        "invalid-json": "文件不是有效的 JSON。",
+        "invalid-schema": "这不是 TabPlex 备份文件。",
+        "unsupported-version": "该备份版本暂不支持。",
+        "unsupported-integrity": "文件使用了不支持的完整性格式。",
+        "invalid-checksum": "文件校验和格式无效。",
+        "checksum-mismatch": "SHA-256 校验失败，文件可能已损坏或被修改。",
+        "quotaLocal": "本地存储空间不足，未执行恢复。",
+        "quotaSync": "浏览器同步设置空间不足，未执行恢复。",
+        "backup-restore-recovered-previous-transaction": "已先处理上次中断的恢复，请再次确认本次导入。",
+        "backup-restore-journal-invalid": "恢复日志无法安全读取，已停止操作。",
+        "backup-restore-failed": "恢复失败，原有数据已保留或回滚。"
+      }
+    },
+    "appearance": {
+      "theme": "主题",
+      "accentColor": "主题色",
+      "custom": "自定义",
+      "language": "语言"
+    },
+    "shortcuts": {
+      "title": "快捷键",
+      "desc": "在 Chrome 的扩展快捷键页面统一调整。",
+      "manage": "打开 Chrome 设置",
+      "unavailable": "当前浏览器版本暂不支持在扩展内读取快捷键信息，请前往 chrome://extensions/shortcuts 查看与修改。",
+      "noCommands": "浏览器当前未暴露可配置的快捷键命令。",
+      "actions": {
+        "goHome": "切换到主页",
+        "newWorkspace": "新建工作区",
+        "prevWorkspace": "切换到上一个工作区",
+        "nextWorkspace": "切换到下一个工作区"
+      },
+      "default": "默认：",
+      "record": "录制快捷键",
+      "reset": "恢复默认",
+      "status": {
+        "restored": "已恢复默认",
+        "cleared": "已清除（该功能无快捷键）",
+        "invalid": "组合键不可用，请重新选择",
+        "updated": "快捷键已更新：{{shortcut}}",
+        "waiting": "等待按键…",
+        "recording": "按下新的组合键，Esc 取消",
+        "cancelled": "已取消"
+      }
+    },
+    "aiNaming": {
+      "title": "AI 命名",
+      "description": "首次使用需准备本地模型",
+      "currentStatus": "状态",
+      "backgroundHint": "可关闭设置，Chrome 会继续准备",
+      "sizeNote": "下载、更新和清理由 Chrome 自行管理。扩展只能获取阶段状态和百分比，拿不到总大小或已下载字节数。",
+      "download": "下载并启用",
+      "enable": "启用 AI 命名",
+      "resume": "继续准备",
+      "retry": "重试",
+      "enabled": "已启用",
+      "preparingAction": "准备中",
+      "unsupported": "当前设备不支持",
+      "ready": "已就绪",
+      "refresh": "重新检查",
+      "status": {
+        "checking": "检查中",
+        "ready": "已就绪",
+        "downloadable": "未启用",
+        "downloading": "下载中 {{percent}}%",
+        "downloadingUnknown": "下载中",
+        "preparing": "准备中",
+        "unavailable": "当前设备不支持",
+        "error": "准备失败"
+      }
+    },
+    "control": {
+      "agentControl": {
+        "title": "Agent 控制",
+        "desc": "允许本机 Agent 通过 Skill 操作工作区、标签页和设置，并由 TabPlex 负责校验和安全写入。",
+        "copyInstructions": "创建 Skill",
+        "copied": "指令已复制",
+        "copyFailed": "复制失败，请重试。",
+        "failed": "无法更新 Agent 控制状态。",
+        "status": {
+          "disabled": "未启用",
+          "connecting": "正在连接本机组件…",
+          "connected": "本机组件已连接",
+          "unavailable": "本机组件未连接"
+        }
+      }
+    },
+    "developer": {
+      "onboarding": {
+        "title": "新手引导",
+        "desc": "重新生成引导数据。",
+        "hint": "重新运行会生成新的快速上手工作区，仅用于调试。",
+        "reseed": "重新运行引导",
+        "triggered": "已触发重新运行，请关闭设置查看。"
+      },
+      "logs": {
+        "title": "详细日志",
+        "desc": "开启后将在控制台输出更多日志，便于排查问题。"
+      }
+    },
+    "about": {
+      "desc": "工作区编组标签页，瞬间切换上下文，让研究与工作更专注。",
+      "feedback": {
+        "title": "建议与反馈",
+        "desc": "欢迎告诉我们你遇到的问题或想要的功能。反馈故障时可附上日志，帮助更快定位原因。",
+        "copy": "复制日志",
+        "email": "邮件反馈",
+        "copied": "日志已复制。",
+        "copyFailed": "复制失败。",
+        "mailHint": "已复制日志，请在邮件中粘贴。",
+        "emailSubject": "TabPlex 反馈/建议（v{{version}}）",
+        "emailBody": "类型：问题 / 建议（请保留一个）\n版本：{{version}}\n时间：{{timestamp}}\n\n请描述问题或建议。日志已复制到剪贴板，请粘贴到此处。"
+      }
+    }
+  },
+  "theme": {
+    "dark": "夜间",
+    "light": "浅色",
+    "system": "跟随浏览器"
+  },
+  "common": {
+    "skipToContent": "跳到主要内容",
+    "loading": "加载中…",
+    "switching": "切换中…",
+    "switchFailed": "切换失败，请稍后再试。",
+    "notSet": "未设置",
+    "close": "关闭",
+    "cancel": "取消",
+    "unnamedWorkspace": "未命名工作区",
+    "pageCount": "{{count}} 个页面",
+    "lastUsed": "最近使用 {{time}}",
+    "createdAt": "创建于 {{time}}",
+    "current": "当前",
+    "pinned": "固定",
+    "visitWebsite": "访问网站"
+  },
+  "storage": {
+    "title": "存储",
+    "localTitle": "本地存储",
+    "usage": "{{used}} / {{limit}}",
+    "trashUsage": "回收站占用 {{used}}",
+    "localHint": "Chrome 限制 {{limit}}。",
+    "reading": "正在读取…",
+    "unavailable": "暂时无法读取存储用量",
+    "backup": {
+      "title": "本地备份",
+      "desc": "导出或导入工作区、标签页、时间线、备注和可迁移设置。文件仅保存在本机。",
+      "export": "导出",
+      "exporting": "正在导出…",
+      "import": "导入",
+      "importing": "正在导入…",
+      "importConfirm": "导入会以备份文件替换当前工作区和可迁移设置，并断开现有 Agent 会话。失败时会自动回滚。是否继续？",
+      "exported": "已导出 {{count}} 个工作区。",
+      "exportedWithWarnings": "已导出 {{count}} 个工作区，并安全忽略 {{warningCount}} 项无效内容。",
+      "restored": "已从本地备份恢复 {{count}} 个工作区。",
+      "restoredCleanupPending": "已恢复 {{count}} 个工作区；恢复日志仍在本机等待自动清理。"
+    }
+  },
+  "home": {
+    "title": "TabPlex",
+    "actions": {
+      "goHome": "切换到主页",
+      "autoSavedWorkspace": "自动保存 {{time}}"
+    },
+    "onboarding": {
+      "title": "欢迎使用 TabPlex",
+      "subtitle": "已保存当前窗口标签，并创建了一个快速上手工作区。",
+      "status": {
+        "currentSaved": "已保存当前窗口为工作区",
+        "guideCreated": "已创建快速上手工作区（含示例页面）"
+      },
+      "autoWorkspace": {
+        "name": "自动保存"
+      },
+      "guideWorkspace": {
+        "name": "快速上手",
+        "note": "快速上手清单\n1. 悬停左侧工作区预览，单击切换\n2. 点击 + 新建工作区\n3. 将浏览器标签拖进工作区\n4. 在右侧笔记记录上下文"
+      },
+      "steps": {
+        "switch": {
+          "title": "切换工作区",
+          "desc": "悬停左侧工作区预览，单击切换。"
+        },
+        "create": {
+          "title": "新建工作区",
+          "desc": "点击 + 或直接输入名称创建。"
+        },
+        "note": {
+          "title": "写笔记",
+          "desc": "为每个工作区记录上下文和待办。"
+        }
+      },
+      "actions": {
+        "openGuide": "打开快速上手",
+        "create": "新建工作区",
+        "dismiss": "知道了"
+      }
+    },
+    "sidebar": {
+      "sectionTitle": "工作区",
+      "searchPlaceholder": "搜索工作区、标签页、笔记或创建…",
+      "sort": {
+        "created": "按创建时间",
+        "lastUsed": "按最近使用",
+        "label": "点击切换排序"
+      },
+      "clickSwitch": "点击切换 · 悬停预览",
+      "clickPreview": "点击切换 · 悬停预览",
+      "group": {
+        "results": "搜索结果",
+        "today": "今天",
+        "yesterday": "昨天",
+        "week": "近7天",
+        "earlier": "更早"
+      },
+      "match": {
+        "workspace": "工作区",
+        "tab": "标签页",
+        "resource": "关联资源",
+        "note": "笔记"
+      },
+      "emptyMatch": "没有匹配的工作区，回车即可创建。",
+      "emptyAll": "还没有工作区，试试上方的创建按钮。"
+    },
+    "workspace": {
+      "emptyState": "在左侧选择一个工作区以查看详情。",
+      "switchBlocked": "工作区还在打开中，请稍后再切换。",
+      "tabsStillLoading": "页面仍在载入，请稍候再切换。",
+      "actionBlocked": "工作区正在打开，请完成后再操作。",
+      "openHomeFailed": "工作区已切换，但主页打开失败。",
+      "retryOpenHome": "重试打开主页",
+      "nameLabel": "重命名工作区：{{name}}",
+      "actions": {
+        "timeline": "查看时间线",
+        "timelineTooltip": "最近更新：{{time}} · {{date}}",
+        "noHistory": "暂无历史记录",
+        "moveToTrash": "移入回收站",
+        "trashing": "正在移动至回收站…",
+        "trashHint": "工作区将移动到回收站，可稍后恢复"
+      },
+      "iconPicker": {
+        "title": "选择图标和颜色",
+        "random": "随机选择",
+        "none": "无图标",
+        "colorLabel": "颜色",
+        "noColor": "无颜色",
+        "colorOption": "颜色 {{color}}"
+      },
+      "banner": {
+        "movedTabs": "已移动 {{count}} 个页面",
+        "moveFailed": "移动失败，请稍后再试",
+        "switching": "正在打开工作区，将切换到新的工作区…",
+        "createFailed": "新建或移动失败，请稍后再试"
+      }
+    },
+    "create": {
+      "popup": {
+        "placeholder": "输入名称并回车新建工作区…",
+        "submit": "新建工作区",
+        "submitting": "创建中…",
+        "success": "已创建，新工作区已就绪。",
+        "partialSuccess": "工作区已创建，但当前窗口未完成切换。",
+        "error": "创建失败，请稍后再试。"
+      },
+      "inline": {
+        "placeholder": "工作区名称…",
+        "confirm": "创建工作区"
+      }
+    },
+    "tabs": {
+      "title": "网页清单",
+      "selectionCount": "已选择 {{count}} 个标签页",
+      "selectionCount_one": "已选择 {{count}} 个标签页",
+      "toggleSelect": "选择标签页",
+      "toggleExit": "退出选择",
+      "removeTab": "删除此页面",
+      "removeTabAria": "从工作区移除 {{title}}",
+      "excludeRecord": "排除此页面记录",
+      "unexcludeRecord": "恢复此页面记录",
+      "excludedBadge": "已排除记录",
+      "lastAccessed": "上次访问 {{time}}",
+      "selectionActions": {
+        "moveToWorkspace": "移动到其他工作区"
+      },
+      "empty": "这个工作区还没有页面，可以从浏览器拖拽标签页或点击上方按钮添加。"
+    },
+    "note": {
+      "title": "备注",
+      "placeholder": "记录目标、结论或下一步；输入 @ 引用页面",
+      "editorLabel": "工作区备注",
+      "clear": "清空内容",
+      "clearConfirm": "再次点击确认清空",
+      "clearConfirmPrompt": "确定要清空笔记吗？",
+      "togglePreview": "切换为预览",
+      "toggleEdit": "恢复编辑",
+      "empty": "暂无内容",
+      "resizeLabel": "调整笔记栏宽度",
+      "resizeValue": "笔记栏宽度 {{width}} 像素"
+    },
+    "contextHub": {
+      "title": "上下文",
+      "toggle": "上下文",
+      "addContext": "添加上下文",
+      "close": "收起上下文",
+      "linksDesc": "固定当前工作区要用的链接。",
+      "linkPlaceholder": "粘贴链接…",
+      "linkAdd": "添加",
+      "linkHint": "支持 Notion、飞书、Docs 等。",
+      "linkDuplicate": "已添加",
+      "linkInvalid": "链接无效",
+      "linksEmpty": "暂无链接",
+      "linkRemove": "移除关联",
+      "captureDesc": "写一句备注。",
+      "sections": {
+        "links": "关联",
+        "capture": "备注"
+      }
+    },
+    "switchProgress": {
+      "opening": "正在打开 {{name}}",
+      "recoveryFailed": "上次工作区切换未能安全恢复",
+      "recoveryFailedHint": "当前标签会保留。确认后可放弃旧恢复记录并继续使用。",
+      "discardRecovery": "保留标签并解锁",
+      "discardingRecovery": "正在解锁…",
+      "discardRecoveryConfirm": "确定保留当前所有标签，并放弃上次切换的旧恢复记录吗？此操作不会关闭任何标签。",
+      "discardRecoveryFailed": "解锁失败，请重试。"
+    },
+    "notice": {
+      "workspaceTrashed": "已移入回收站，可在回收站恢复",
+      "timelineRestoredAt": "已恢复到 {{time}} 时间点",
+      "timelineDiffSummary": "标签页变化 +{{added}} / -{{removed}}"
+    },
+    "command": {
+      "title": "命令面板",
+      "desc": "快速切换或创建工作区。",
+      "placeholder": "输入工作区名称…",
+      "create": "创建工作区 “{{name}}”",
+      "hint": "回车",
+      "empty": "没有匹配的工作区。",
+      "footer": "回车切换 · Esc 关闭"
+    },
+    "quickSwitcher": {
+      "createHint": "回车创建",
+      "keyboardHint": "↑↓ 选择 · 回车打开"
+    },
+    "trash": {
+      "title": "回收站",
+      "desc": "{{count}} 个工作区 · 共 {{totalTabs}} 个页面",
+      "searchPlaceholder": "搜索已删除的工作区…",
+      "emptyAction": "清空回收站",
+      "emptyConfirmTitle": "确认清空回收站？",
+      "emptyConfirmDesc": "清空后将无法恢复。",
+      "emptyConfirmAction": "确认清空",
+      "emptyConfirmCancel": "取消",
+      "deleteConfirmTitle": "确认永久删除？",
+      "deleteConfirmDesc": "将永久删除“{{name}}”，且无法恢复。",
+      "deleteConfirmAction": "永久删除",
+      "deleteConfirmCancel": "取消",
+      "tooltip": "回收站（{{count}}）",
+      "tooltipEmpty": "暂无可恢复的工作区",
+      "listEmpty": "没有匹配的已删除工作区。",
+      "restore": "恢复工作区",
+      "deletePermanently": "彻底删除",
+      "deletedAt": "{{time}} 移入",
+      "deletedAtShort": "移入",
+      "pill": "已删除"
+    }
+  },
+  "timeline": {
+    "title": "TabPlex 时间线",
+    "backHome": "返回主页",
+    "openWorkspace": "打开此工作区",
+    "loading": "加载时间线…",
+    "empty": "暂无可用工作区，请先创建或保存一个工作区。",
+    "meta": {
+      "historyCount": "{{count}} 条历史记录",
+      "recentUpdate": "最近更新 · {{time}}"
+    },
+    "snapshot": {
+      "title": "当时的标签页",
+      "empty": "该时间点暂无页面。"
+    },
+    "diff": {
+      "added": "+{{count}}标签",
+      "removed": "-{{count}}标签",
+      "none": "无页面变动",
+      "titleAdded": "+",
+      "titleRemoved": "已移除",
+      "empty": "暂无页面变动。"
+    },
+    "pinned": "固定",
+    "restore": "恢复到该时间点",
+    "restoring": "正在恢复…",
+    "restoreHint": "恢复前会自动保存当前状态，之后仍可从时间线撤回。",
+    "restoreError": "恢复失败，当前状态未被替换，请重试。",
+    "restoreOpenError": "时间点已恢复，但未能在当前窗口打开该工作区。",
+    "selectHint": "请选择时间线节点查看详情。",
+    "emptyHistory": "暂无历史记录，切换或保存工作区后会自动生成。"
+  }
+}
