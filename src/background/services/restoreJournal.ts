@@ -1,9 +1,5 @@
 type BackupRestorePhase =
-  | "prepared"
-  | "writing"
-  | "written"
-  | "committed"
-  | "rolling-back"
+  "prepared" | "writing" | "written" | "committed" | "rolling-back"
 
 export type StorageKeySnapshot = {
   values: Record<string, unknown>

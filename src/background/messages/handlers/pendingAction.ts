@@ -19,8 +19,7 @@ export const createPendingActionConsumer = ({
     withLock(async () => {
       const result = await storage.get(STORAGE_KEYS.PENDING_ACTION)
       const current = result[STORAGE_KEYS.PENDING_ACTION] as
-        | { id?: unknown }
-        | undefined
+        { id?: unknown } | undefined
       if (!current) return false
 
       if (expectedId) {

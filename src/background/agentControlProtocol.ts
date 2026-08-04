@@ -3,10 +3,7 @@ import { isSafeTabUrl, normalizeEmoji } from "~core/utils"
 import { normalizeWorkspaceColor } from "~core/utils/colors"
 
 export type AgentMutableSettingKey =
-  | "theme"
-  | "language"
-  | "accentColor"
-  | "workspaceSort"
+  "theme" | "language" | "accentColor" | "workspaceSort"
 
 export const AGENT_COMMANDS = [
   "getState",

@@ -1,12 +1,5 @@
 import { motion, useInView, useReducedMotion } from "motion/react"
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type Key,
-  type ReactNode
-} from "react"
+import { useCallback, useEffect, useRef, type Key, type ReactNode } from "react"
 
 import { cn } from "~lib/utils"
 
@@ -16,6 +9,13 @@ interface AnimatedListItemProps {
   index: number
   className?: string
 }
+
+const MAX_STAGGERED_ITEMS = 8
+
+export const resolveAnimatedListItemDelay = (
+  index: number,
+  staggerDelay: number
+) => (index < MAX_STAGGERED_ITEMS ? index * staggerDelay : 0)
 
 export const resolveAnimatedListItemMotion = ({
   reduceMotion,
@@ -50,7 +50,7 @@ const AnimatedListItem = ({
   className
 }: AnimatedListItemProps) => {
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { amount: 0.5, once: false })
+  const inView = useInView(ref, { amount: 0.5, once: true })
   const reduceMotion = useReducedMotion() === true
   const itemMotion = resolveAnimatedListItemMotion({
     reduceMotion,
@@ -94,27 +94,46 @@ const AnimatedList = <T,>({
   displayScrollbar = true,
   staggerDelay = 0.04
 }: AnimatedListProps<T>) => {
+  const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const [topGradientOpacity, setTopGradientOpacity] = useState(0)
-  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1)
+  const gradientFrameRef = useRef<number | null>(null)
 
   const updateGradients = useCallback(() => {
-    const target = listRef.current
-    if (!target) return
-    const { scrollTop, scrollHeight, clientHeight } = target
-    setTopGradientOpacity(Math.min(scrollTop / 50, 1))
-    const bottomDistance = scrollHeight - (scrollTop + clientHeight)
-    setBottomGradientOpacity(
-      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
-    )
+    if (gradientFrameRef.current !== null) return
+    gradientFrameRef.current = window.requestAnimationFrame(() => {
+      gradientFrameRef.current = null
+      const target = listRef.current
+      const container = containerRef.current
+      if (!target || !container) return
+      const { scrollTop, scrollHeight, clientHeight } = target
+      const bottomDistance = scrollHeight - (scrollTop + clientHeight)
+      container.style.setProperty(
+        "--animated-list-top-opacity",
+        String(Math.min(scrollTop / 50, 1))
+      )
+      container.style.setProperty(
+        "--animated-list-bottom-opacity",
+        String(
+          scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
+        )
+      )
+    })
   }, [])
 
   useEffect(() => {
     updateGradients()
+    return () => {
+      if (gradientFrameRef.current !== null) {
+        window.cancelAnimationFrame(gradientFrameRef.current)
+        gradientFrameRef.current = null
+      }
+    }
   }, [updateGradients, items.length])
 
   return (
-    <div className={cn("animated-list-container", className)}>
+    <div
+      ref={containerRef}
+      className={cn("animated-list-container", className)}>
       <div
         ref={listRef}
         className={cn(
@@ -126,7 +145,7 @@ const AnimatedList = <T,>({
         {items.map((item, index) => (
           <AnimatedListItem
             key={getItemKey?.(item, index) ?? index}
-            delay={index * staggerDelay}
+            delay={resolveAnimatedListItemDelay(index, staggerDelay)}
             index={index}
             className={itemClassName}>
             {renderItem(item, index)}
@@ -135,14 +154,8 @@ const AnimatedList = <T,>({
       </div>
       {showGradients ? (
         <>
-          <div
-            className="animated-list-top-gradient"
-            style={{ opacity: topGradientOpacity }}
-          />
-          <div
-            className="animated-list-bottom-gradient"
-            style={{ opacity: bottomGradientOpacity }}
-          />
+          <div className="animated-list-top-gradient" />
+          <div className="animated-list-bottom-gradient" />
         </>
       ) : null}
     </div>

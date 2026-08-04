@@ -222,8 +222,7 @@ if (chrome?.storage?.onChanged) {
     if (areaName === "local" && changes[STORAGE_KEYS.LOCAL_SETTINGS]) {
       const nextLocalSettings = changes[STORAGE_KEYS.LOCAL_SETTINGS]
         .newValue as
-        | { devMode?: boolean; agentControlEnabled?: boolean }
-        | undefined
+        { devMode?: boolean; agentControlEnabled?: boolean } | undefined
       setLoggerConsoleEnabled(!!nextLocalSettings?.devMode)
       const enabled = nextLocalSettings?.agentControlEnabled === true
       if (agentControlRuntime) agentControlRuntime.setEnabled(enabled)
@@ -232,8 +231,7 @@ if (chrome?.storage?.onChanged) {
     }
     if (areaName !== "sync") return
     const next = changes[STORAGE_KEYS.SETTINGS]?.newValue as
-      | { shortcuts?: Record<string, string> }
-      | undefined
+      { shortcuts?: Record<string, string> } | undefined
     if (!next?.shortcuts) return
     void applyCommandShortcuts(next.shortcuts)
   })

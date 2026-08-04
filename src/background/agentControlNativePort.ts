@@ -3,10 +3,7 @@ import type { AgentResponse } from "./agentControlCommands"
 export const TABPLEX_NATIVE_HOST_NAME = "com.tabplex.agent" as const
 
 type AgentControlConnectionState =
-  | "disabled"
-  | "connecting"
-  | "connected"
-  | "unavailable"
+  "disabled" | "connecting" | "connected" | "unavailable"
 
 export type AgentControlConnectionStatus = {
   state: AgentControlConnectionState

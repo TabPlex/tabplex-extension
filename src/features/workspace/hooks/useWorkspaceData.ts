@@ -124,10 +124,13 @@ export const useWorkspaceData = () => {
         const legacyTagsChange = changes[STORAGE_KEYS.TAGS]
         if (canonicalWorkspacesChange) {
           markLoaded("workspacesLoaded")
-          setWorkspaces(canonicalWorkspacesChange.newValue ?? [])
+          setWorkspaces(
+            (canonicalWorkspacesChange.newValue as Workspace[] | undefined) ??
+              []
+          )
         } else if (legacyTagsChange?.newValue !== undefined) {
           markLoaded("workspacesLoaded")
-          setWorkspaces(legacyTagsChange.newValue)
+          setWorkspaces(legacyTagsChange.newValue as Workspace[])
         }
 
         if (changes[STORAGE_KEYS.LOCAL_SETTINGS]) {
@@ -139,25 +142,27 @@ export const useWorkspaceData = () => {
         if (stateChanged || switchChanged) {
           markLoaded("workspaceStateLoaded")
           const nextMain = stateChanged
-            ? changes[STORAGE_KEYS.STATE].newValue ?? DEFAULT_WORKSPACE_STATE
+            ? ((changes[STORAGE_KEYS.STATE].newValue as
+                WorkspaceState | undefined) ?? DEFAULT_WORKSPACE_STATE)
             : null
           const rawNextSwitch = switchChanged
-            ? changes[STORAGE_KEYS.SWITCH_STATE].newValue ?? null
+            ? (changes[STORAGE_KEYS.SWITCH_STATE].newValue ?? null)
             : undefined
-          const nextSwitch =
-            rawNextSwitch && typeof rawNextSwitch === "object"
-              ? {
-                  ...rawNextSwitch,
-                  completedCount:
-                    rawNextSwitch.completedCount ??
-                    (typeof rawNextSwitch.openedCount === "number"
-                      ? rawNextSwitch.openedCount
-                      : 0),
-                  failedCount: rawNextSwitch.failedCount ?? 0,
-                  updatedAt:
-                    rawNextSwitch.updatedAt ?? rawNextSwitch.ts ?? Date.now()
-                }
-              : rawNextSwitch
+          let nextSwitch: WorkspaceState["switchState"] | undefined
+          if (rawNextSwitch && typeof rawNextSwitch === "object") {
+            const storedSwitch = rawNextSwitch as NonNullable<
+              WorkspaceState["switchState"]
+            >
+            nextSwitch = {
+              ...storedSwitch,
+              completedCount:
+                storedSwitch.completedCount ?? storedSwitch.openedCount ?? 0,
+              failedCount: storedSwitch.failedCount ?? 0,
+              updatedAt: storedSwitch.updatedAt ?? storedSwitch.ts ?? Date.now()
+            }
+          } else {
+            nextSwitch = rawNextSwitch as null | undefined
+          }
 
           setWorkspaceState((prev) => {
             const base = nextMain
@@ -168,7 +173,7 @@ export const useWorkspaceData = () => {
                 ...base,
                 switchState:
                   nextSwitch === undefined
-                    ? prev.switchState ?? null
+                    ? (prev.switchState ?? null)
                     : nextSwitch
               },
               currentWindow
@@ -200,7 +205,7 @@ export const useWorkspaceData = () => {
         const binding = await getWorkspaceWindowBinding(window.id)
         const workspaceId =
           bindingGeneration === bindingsChangeGeneration
-            ? binding?.workspaceId ?? null
+            ? (binding?.workspaceId ?? null)
             : workspaceIdFromBindings(latestBindingsValue, window.id)
         currentWindow = { status: "ready", windowId: window.id, workspaceId }
 

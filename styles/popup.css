@@ -212,6 +212,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .tg-switch-progress-bar-fill {
+    transition-duration: 0s;
+  }
+}
+
 @media (forced-colors: active) {
   .tg-root {
     background: Canvas !important;

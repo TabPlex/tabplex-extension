@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import type { TabSpec } from "~core/types"
-import { prepareTabMove } from "~lib/workspaceUtils"
+
+import { prepareTabMove } from "./workspaceUtils"
 
 const createTab = (overrides: Partial<TabSpec> = {}): TabSpec => ({
   url: overrides.url ?? "https://example.com",

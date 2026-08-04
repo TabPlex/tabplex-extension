@@ -46,8 +46,8 @@ const isUpToDateHomeUrl = (tabUrl: string | undefined, homeBase: string) => {
   const current = parseMatchingHomeUrl(tabUrl, homeBase)
   return Boolean(
     current &&
-      current.searchParams.get("mode") === "home" &&
-      current.searchParams.get("v") === chrome.runtime.getManifest().version
+    current.searchParams.get("mode") === "home" &&
+    current.searchParams.get("v") === chrome.runtime.getManifest().version
   )
 }
 
@@ -138,7 +138,7 @@ export async function openAndPinHomeInCurrentWindow(activate: boolean) {
 // --- 导航拦截 ---
 const handleHomeNavigation = async (
   tabId: number,
-  changeInfo: chrome.tabs.TabChangeInfo,
+  changeInfo: chrome.tabs.OnUpdatedInfo,
   tab: chrome.tabs.Tab,
   wasHomeTab: boolean
 ) => {

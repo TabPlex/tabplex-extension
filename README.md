@@ -7,24 +7,25 @@ switching task context across Chrome or Edge windows (Manifest V3).
 
 ## Current Features
 
-- Save workspaces with multiple window slots, tab-group metadata, notes, and
-  linked resources.
-- Switch workspaces with a persistent recovery journal and configurable
-  aggressive or soft tab restoration.
+- Save task workspaces with tab-group metadata, notes, linked resources, and a
+  recoverable timeline.
+- Switch the current normal browser window with a persistent recovery journal
+  and configurable aggressive or soft tab restoration.
 - Search across workspace names, tab titles and URLs, linked resources, and
   notes.
-- Export and restore portable local backup files with a SHA-256 corruption
-  check and transactional rollback.
+- Export and restore portable v3 backup files with bounded validation, a
+  SHA-256 corruption check, and transactional rollback.
 - Use browser-level shortcuts and an optional, off-by-default Native Messaging
   Agent control channel for local workflows.
 
 ## Privacy & Storage
 
 Workspace content, notes, resources, recovery state, and the device-local Agent
-enable switch are stored in `chrome.storage.local`. Small portable preferences use the
-browser's `chrome.storage.sync`. The current extension has no TabPlex account,
-analytics client, remote workspace API, or background upload path. Backup files
-are created locally and are only written when the user explicitly exports one.
+enable switch are stored in `chrome.storage.local`. Per-window bindings are
+ephemeral and live in `chrome.storage.session`; small portable preferences use
+`chrome.storage.sync`. The current extension has no TabPlex account, analytics
+client, remote workspace API, or background upload path. Backup files are
+created locally and are only written when the user explicitly exports one.
 Backup files use an 8 MiB safety limit. A matching checksum detects accidental
 or malicious file changes but does not authenticate who created the file.
 
@@ -36,16 +37,18 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Load the dev build in Chrome: `build/chrome-mv3-dev`.
+Use Node 24 and the pnpm version declared in `package.json`. Load the dev build
+in Chrome from `build/chrome-mv3-dev`.
 
 ## Build & Package
 
 ```bash
 pnpm build:chrome
 pnpm build:edge
-pnpm verify:artifacts
+pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
 pnpm package:chrome
 pnpm package:edge
+pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
 ```
 
 Artifacts:
@@ -57,6 +60,7 @@ Artifacts:
 Before a release, run the same gates as CI:
 
 ```bash
+pnpm format:check
 pnpm scan:secrets
 pnpm audit --audit-level high
 pnpm typecheck
@@ -65,8 +69,12 @@ pnpm typecheck:strictnull:core
 pnpm test
 pnpm build:chrome
 pnpm build:edge
-pnpm verify:artifacts
+pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
 ```
+
+Tests intentionally focus on stable behavior: storage and backup contracts,
+message handlers, queues, switching state machines, and high-cost interactions.
+See [the testing standards](docs/testing-standards.md) before adding a test.
 
 ## Optional Local Agent Control
 

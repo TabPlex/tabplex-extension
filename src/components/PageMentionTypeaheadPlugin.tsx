@@ -22,7 +22,7 @@ import { cn } from "~lib/utils"
 import { getTabDisplayTitle } from "~shared/logic"
 
 class PageOption extends MenuOption {
-  title: string
+  declare title: string
   url: string
   displayUrl: string
   faviconUrl?: string

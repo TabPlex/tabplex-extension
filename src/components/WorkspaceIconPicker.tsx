@@ -180,7 +180,7 @@ export const WorkspaceIconPicker = ({
                         type="button"
                         style={swatchStyle}
                         className={cn(
-                          "h-6 w-6 rounded-full border border-transparent transition-transform hover:scale-110",
+                          "h-6 w-6 rounded-full border border-transparent transition-transform hover:scale-110 motion-reduce:transition-none motion-reduce:hover:scale-100",
                           isTransparentOption &&
                             "border-border/50 bg-background",
                           isActiveColor &&

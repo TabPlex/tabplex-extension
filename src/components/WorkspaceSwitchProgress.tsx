@@ -128,7 +128,7 @@ export const WorkspaceSwitchProgress = ({
             aria-valuemax={100}
             aria-valuenow={percentage}>
             <div
-              className="h-full bg-primary transition-[width] duration-300 ease-out"
+              className="h-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none"
               style={{ width: `${percentage}%` }}
             />
           </div>

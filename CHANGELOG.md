@@ -1,18 +1,19 @@
 # Changelog
 
 This project follows a release-note format based on user-visible changes. The
-current `0.0.3` tree is a release candidate; dated release entries are added when
+current `1.0.0` tree is a release candidate; dated release entries are added when
 a version is actually published.
 
 ## Unreleased
 
 ### Added
 
-- Multi-window workspace slots and portable Chrome tab-group restoration.
-- Local backup v2 with bounded validation, checksum checks, preview,
+- Current-window workspaces with portable Chrome tab-group restoration and
+  stale-window write protection.
+- Local backup v3 with bounded validation, checksum checks, preview,
   transactional recovery, and startup rollback after interruption.
 - Global workspace, tab, resource, and note search.
-- Optional loopback-only Agent control with one-time pairing and short sessions.
+- Optional, off-by-default Native Messaging Agent control for local workflows.
 
 ### Changed
 

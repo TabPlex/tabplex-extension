@@ -1,6 +1,5 @@
 export type PreferredWindowIdResult =
-  | { ok: true; value: number | undefined }
-  | { ok: false }
+  { ok: true; value: number | undefined } | { ok: false }
 
 export const parsePreferredWindowId = (
   value: unknown

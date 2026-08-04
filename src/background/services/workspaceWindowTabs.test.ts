@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 
 import { resolveNormalWindowId } from "./workspaceWindowTabs"
 
@@ -13,21 +13,34 @@ const browserWindow = (
   incognito: false
 })
 
+type GetWindow = (
+  windowId: number,
+  queryOptions?: chrome.windows.QueryOptions
+) => Promise<chrome.windows.Window>
+type GetLastFocusedWindow = (
+  queryOptions?: chrome.windows.QueryOptions
+) => Promise<chrome.windows.Window>
+
+let getWindow: Mock<GetWindow>
+let getLastFocusedWindow: Mock<GetLastFocusedWindow>
+
 describe("resolveNormalWindowId", () => {
   beforeEach(() => {
+    getWindow = vi.fn<GetWindow>()
+    getLastFocusedWindow = vi.fn<GetLastFocusedWindow>()
     ;(globalThis as any).chrome = {
       windows: {
-        get: vi.fn(),
-        getLastFocused: vi.fn()
+        get: getWindow,
+        getLastFocused: getLastFocusedWindow
       }
     }
   })
 
   it("uses the explicit normal window", async () => {
-    vi.mocked(chrome.windows.get).mockResolvedValue(browserWindow(7))
+    getWindow.mockResolvedValue(browserWindow(7))
 
     await expect(resolveNormalWindowId(7)).resolves.toBe(7)
-    expect(chrome.windows.getLastFocused).not.toHaveBeenCalled()
+    expect(getLastFocusedWindow).not.toHaveBeenCalled()
   })
 
   it.each([
@@ -38,18 +51,18 @@ describe("resolveNormalWindowId", () => {
     }
   ])("never falls back when an explicit window is invalid", async (input) => {
     if (input.error) {
-      vi.mocked(chrome.windows.get).mockRejectedValue(input.error)
+      getWindow.mockRejectedValue(input.error)
     } else {
-      vi.mocked(chrome.windows.get).mockResolvedValue(input.value!)
+      getWindow.mockResolvedValue(input.value!)
     }
 
     await expect(resolveNormalWindowId(7)).rejects.toThrow(input.expected)
-    expect(chrome.windows.getLastFocused).not.toHaveBeenCalled()
+    expect(getLastFocusedWindow).not.toHaveBeenCalled()
   })
 
   it("uses the last focused normal window only when no source was supplied", async () => {
-    vi.mocked(chrome.windows.getLastFocused).mockResolvedValue(browserWindow(8))
-    vi.mocked(chrome.windows.get).mockResolvedValue(browserWindow(8))
+    getLastFocusedWindow.mockResolvedValue(browserWindow(8))
+    getWindow.mockResolvedValue(browserWindow(8))
 
     await expect(resolveNormalWindowId()).resolves.toBe(8)
   })

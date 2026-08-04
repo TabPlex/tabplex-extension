@@ -118,7 +118,7 @@ const TimelineView = ({
   const selectedTag = useMemo(
     () =>
       selectedId
-        ? sortedWorkspaces.find((tag) => tag.id === selectedId) ?? null
+        ? (sortedWorkspaces.find((tag) => tag.id === selectedId) ?? null)
         : null,
     [selectedId, sortedWorkspaces]
   )

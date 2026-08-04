@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
 
-import { canOpenWorkspaceTimeline } from "~shared/logic"
+import { canOpenWorkspaceTimeline } from "./logic"
 
 it("disables timeline when workspace has no history", () => {
   expect(

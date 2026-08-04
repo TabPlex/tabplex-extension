@@ -23,17 +23,13 @@ export const useAnimatedIcon = (
   const controls = useAnimation()
   const isControlledRef = useRef(false)
 
-  useImperativeHandle(
-    ref,
-    () => {
-      isControlledRef.current = true
-      return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal")
-      }
-    },
-    [controls]
-  )
+  useImperativeHandle(ref, () => {
+    isControlledRef.current = true
+    return {
+      startAnimation: () => controls.start("animate"),
+      stopAnimation: () => controls.start("normal")
+    }
+  }, [controls])
 
   const handleMouseEnter = useCallback<MouseEventHandler<HTMLDivElement>>(
     (event) => {

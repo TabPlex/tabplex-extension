@@ -150,6 +150,14 @@ export const TabList = memo(function TabList({
     () => listTabs.map((tab) => normalizeUrlForLookup(tab.url)),
     [listTabs]
   )
+  const selectedTabIndexSet = useMemo(
+    () => new Set(selectedTabIndexes),
+    [selectedTabIndexes]
+  )
+  const draggedTabIndexSet = useMemo(
+    () => new Set(draggedTabIndexes),
+    [draggedTabIndexes]
+  )
 
   useEffect(() => {
     return () => {
@@ -201,8 +209,8 @@ export const TabList = memo(function TabList({
     const { host, display: linkText } = describeUrl(tab.url)
     const urlKey = normalizeUrlForLookup(tab.url)
     const titleText = getTabDisplayTitle(tab, host || tab.url)
-    const isChecked = tabSelectionMode && selectedTabIndexes.includes(index)
-    const isDragging = draggedTabIndexes.includes(index)
+    const isChecked = tabSelectionMode && selectedTabIndexSet.has(index)
+    const isDragging = draggedTabIndexSet.has(index)
     const canDrag = !interactionLocked && (!tabSelectionMode || isChecked)
     const itemClass = `tab-item${
       tabSelectionMode ? " is-selecting" : ""

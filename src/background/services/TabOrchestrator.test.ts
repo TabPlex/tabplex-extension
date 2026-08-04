@@ -25,8 +25,10 @@ const tab = (
   incognito: false,
   selected: false,
   discarded: false,
+  frozen: false,
   autoDiscardable: true,
   groupId: -1,
+  lastAccessed: 0,
   ...overrides
 })
 

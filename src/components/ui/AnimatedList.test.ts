@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { resolveAnimatedListItemMotion } from "./AnimatedList"
+import {
+  resolveAnimatedListItemDelay,
+  resolveAnimatedListItemMotion
+} from "./AnimatedList"
 
 describe("resolveAnimatedListItemMotion", () => {
   it("renders immediately without opacity or transform entry motion", () => {
@@ -29,5 +32,11 @@ describe("resolveAnimatedListItemMotion", () => {
       animate: { scale: 1, opacity: 1, y: 0 },
       transition: { duration: 0.2, delay: 0.08 }
     })
+  })
+
+  it("does not delay list items outside the initial viewport sequence", () => {
+    expect(resolveAnimatedListItemDelay(7, 0.04)).toBeCloseTo(0.28)
+    expect(resolveAnimatedListItemDelay(8, 0.04)).toBe(0)
+    expect(resolveAnimatedListItemDelay(80, 0.04)).toBe(0)
   })
 })

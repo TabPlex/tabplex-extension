@@ -65,7 +65,7 @@ const TimelineViewLazy = lazy(() => import("~components/TimelineView"))
 applyThemePreference(readCachedThemePreference())
 
 const PageFallback = () => (
-  <div className="flex min-h-screen w-full items-center justify-center bg-white" />
+  <div className="flex min-h-screen w-full items-center justify-center bg-background" />
 )
 
 type PopupWorkspaceListItem =
@@ -77,12 +77,7 @@ type PopupStatus = {
   message: string
 }
 
-const Popup = () => {
-  const mode = useMemo(() => {
-    if (typeof window === "undefined") return null
-    return new URLSearchParams(window.location.search).get("mode")
-  }, [])
-
+const QuickSwitcher = () => {
   const {
     sortedWorkspaces,
     workspaceState,
@@ -366,7 +361,7 @@ const Popup = () => {
     const currentWorkspaceIndex = activeId
       ? workspaceIndexById.get(activeId)
       : undefined
-    setActiveActionIndex(query.trim() ? 0 : currentWorkspaceIndex ?? 0)
+    setActiveActionIndex(query.trim() ? 0 : (currentWorkspaceIndex ?? 0))
   }, [activeId, query, workspaceIndexById])
 
   useEffect(() => {
@@ -407,18 +402,6 @@ const Popup = () => {
     }
     const workspace = navigableWorkspaces[action.workspaceIndex]
     if (workspace) void handleSelectWorkspace(workspace)
-  }
-
-  if (mode === "home") {
-    return <HomeView />
-  }
-
-  if (mode === "timeline") {
-    return (
-      <Suspense fallback={<PageFallback />}>
-        <TimelineViewLazy />
-      </Suspense>
-    )
   }
 
   return (
@@ -673,12 +656,33 @@ const Popup = () => {
   )
 }
 
+const PopupSurface = () => {
+  const mode = useMemo(() => {
+    if (typeof window === "undefined") return null
+    return new URLSearchParams(window.location.search).get("mode")
+  }, [])
+
+  if (mode === "home") {
+    return <HomeView />
+  }
+
+  if (mode === "timeline") {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <TimelineViewLazy />
+      </Suspense>
+    )
+  }
+
+  return <QuickSwitcher />
+}
+
 const PopupWithProvider = () => {
   return (
     <MotionConfig reducedMotion="user">
       <AppErrorBoundary>
         <WorkspaceDataProvider>
-          <Popup />
+          <PopupSurface />
         </WorkspaceDataProvider>
       </AppErrorBoundary>
     </MotionConfig>

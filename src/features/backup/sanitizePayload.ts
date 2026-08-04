@@ -42,7 +42,7 @@ const sanitizeSettings = (value: unknown, path: string): PortableSettings => {
   const workspaceSort =
     raw.workspaceSort === "lastUsed" || raw.workspaceSort === "created"
       ? raw.workspaceSort
-      : DEFAULT_SETTINGS.workspaceSort ?? "created"
+      : (DEFAULT_SETTINGS.workspaceSort ?? "created")
 
   return { language, theme, accentColor, tabRestoreMode, workspaceSort }
 }

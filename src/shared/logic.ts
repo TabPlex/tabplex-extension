@@ -27,7 +27,7 @@ export const groupWorkspacesByRecency = (
   const map = new Map<string, Workspace[]>()
   for (const tag of tags) {
     const ts =
-      sortKey === "created" ? tag.createdAt : tag.lastUsedAt ?? tag.createdAt
+      sortKey === "created" ? tag.createdAt : (tag.lastUsedAt ?? tag.createdAt)
     const title = recencyBucketTitle(ts, now)
     const list = map.get(title)
     if (list) list.push(tag)
@@ -46,8 +46,8 @@ export const groupWorkspacesByRecency = (
       // Inside each group, order by selected key desc
       const getTs = (t: Workspace) =>
         sortKey === "created"
-          ? t.createdAt ?? 0
-          : t.lastUsedAt ?? t.createdAt ?? 0
+          ? (t.createdAt ?? 0)
+          : (t.lastUsedAt ?? t.createdAt ?? 0)
       items.sort((a, b) => getTs(b) - getTs(a))
       groups.push({ title: groupTitle, items })
     }

@@ -374,7 +374,10 @@ const restorePreparedTabGroups = async (prepared: PreparedWindowSwitch) => {
   )
   const grouped = new Map<
     string,
-    { tabIds: number[]; group: NonNullable<TabSpec["group"]> }
+    {
+      tabIds: [number, ...number[]]
+      group: NonNullable<TabSpec["group"]>
+    }
   >()
 
   for (const { tabId, spec } of prepared.preparedTargets) {
@@ -399,7 +402,11 @@ const restorePreparedTabGroups = async (prepared: PreparedWindowSwitch) => {
 
   if (toUngroup.length) {
     try {
-      await chrome.tabs.ungroup(toUngroup)
+      const tabIds: [number, ...number[]] = [
+        toUngroup[0],
+        ...toUngroup.slice(1)
+      ]
+      await chrome.tabs.ungroup(tabIds)
     } catch {
       throw new Error("workspace-tab-group-restore-failed")
     }

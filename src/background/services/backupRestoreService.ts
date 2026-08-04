@@ -114,8 +114,7 @@ export type BackupRestoreDependencies = {
 }
 
 export type BackupRestorePlanFactory =
-  | (() => ImportPlan)
-  | (() => Promise<ImportPlan>)
+  (() => ImportPlan) | (() => Promise<ImportPlan>)
 
 type ResolvedDependencies = {
   abortSwitch: BackupRestoreDependencies["abortSwitch"]

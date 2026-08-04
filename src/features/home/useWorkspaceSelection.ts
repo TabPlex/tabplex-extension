@@ -74,7 +74,7 @@ export const useWorkspaceSelection = ({
   const selectedWorkspace = useMemo(
     () =>
       selectedId
-        ? workspaces.find((workspace) => workspace.id === selectedId) ?? null
+        ? (workspaces.find((workspace) => workspace.id === selectedId) ?? null)
         : null,
     [selectedId, workspaces]
   )

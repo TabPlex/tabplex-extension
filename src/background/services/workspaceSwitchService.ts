@@ -325,9 +325,9 @@ const runSwitch = async (
       return { success: true }
     }
     const source = sourceBinding
-      ? workspaces.find(
+      ? (workspaces.find(
           (workspace) => workspace.id === sourceBinding?.workspaceId
-        ) ?? null
+        ) ?? null)
       : null
     const sourceSnapshot = await captureSourceSnapshot(windowId, source)
     throwIfSwitchIntentCancelled(intent)

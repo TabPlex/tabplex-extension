@@ -385,11 +385,7 @@ const hasOwn = (obj: object, key: string) =>
   Object.prototype.hasOwnProperty.call(obj, key)
 
 type WorkspaceStorageSource =
-  | "local-workspaces"
-  | "local-tags"
-  | "sync-workspaces"
-  | "sync-tags"
-  | "none"
+  "local-workspaces" | "local-tags" | "sync-workspaces" | "sync-tags" | "none"
 
 const readWorkspaceStorageSource = async (): Promise<{
   source: WorkspaceStorageSource
@@ -408,8 +404,7 @@ const readWorkspaceStorageSource = async (): Promise<{
   ])
   const legacyLayoutsByWorkspace =
     (rLocal[LEGACY_STORAGE_KEYS.workspaceVirtualWindowLayouts] as
-      | Record<string, unknown>
-      | undefined) ?? {}
+      Record<string, unknown> | undefined) ?? {}
   const virtualWindows = rLocal[LEGACY_STORAGE_KEYS.virtualWindows]
   const localOptions = { legacyLayoutsByWorkspace, virtualWindows }
 
@@ -655,7 +650,7 @@ const normalizeSettings = (
   const accentColor = normalizeHex(
     typeof portable.accentColor === "string"
       ? portable.accentColor
-      : DEFAULT_SETTINGS.accentColor ?? "#6C5CE7"
+      : (DEFAULT_SETTINGS.accentColor ?? "#6C5CE7")
   ).toUpperCase()
 
   return {
@@ -935,8 +930,8 @@ export const saveWorkspaceStatePatch = async (
     ...normalizedPatch,
     activeWorkspaceId:
       patch.activeWorkspaceId === undefined
-        ? current.activeWorkspaceId ?? null
-        : patch.activeWorkspaceId ?? null,
+        ? (current.activeWorkspaceId ?? null)
+        : (patch.activeWorkspaceId ?? null),
     notes: patch.notes ?? current.notes ?? {},
     notePreview: patch.notePreview ?? current.notePreview ?? {},
     linkedResources: patch.linkedResources ?? current.linkedResources ?? {}

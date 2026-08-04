@@ -158,7 +158,9 @@ export const useNoteLogic = (
     previousSelectedIdRef.current = currentId
     selectedIdRef.current = currentId
 
-    const remoteNote = currentId ? workspaceState.notes?.[currentId] ?? "" : ""
+    const remoteNote = currentId
+      ? (workspaceState.notes?.[currentId] ?? "")
+      : ""
     const hasPendingSave = noteSaveTimerRef.current !== null
     const cachedDraft =
       currentId && dirtyByWorkspaceIdRef.current[currentId]

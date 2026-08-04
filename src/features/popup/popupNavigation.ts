@@ -3,9 +3,7 @@ import type { Workspace } from "~core/types"
 type NamedWorkspace = Pick<Workspace, "name">
 
 export type PopupNavigationAction =
-  | { type: "workspace"; workspaceIndex: number }
-  | { type: "create" }
-  | null
+  { type: "workspace"; workspaceIndex: number } | { type: "create" } | null
 
 const normalizeWorkspaceName = (value: string) =>
   value.normalize("NFKC").toLocaleLowerCase().replace(/\s+/g, " ").trim()

@@ -21,7 +21,7 @@
 
 ## Coding Style & Naming Conventions
 
-- We write in TypeScript + React, formatted by Prettier with `@ianvs/prettier-plugin-sort-imports`. Run `pnpm exec prettier --write .` before committing; this enforces 2-space indentation and sorted import groups.
+- We write in TypeScript + React, formatted by Prettier with `@ianvs/prettier-plugin-sort-imports`. Run `pnpm format` before committing; this enforces 2-space indentation and sorted import groups.
 - Use `PascalCase` filenames for React components, `camelCase` for hooks and utilities, and prefix all hooks with `use`. Favor default exports for entry components and named exports for shared utilities.
 - Prefer the `~` path alias (see `tsconfig.json`) for root-relative imports to keep import trees tidy.
 

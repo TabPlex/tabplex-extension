@@ -48,7 +48,7 @@ let startupGate: Promise<unknown> = Promise.resolve()
 let maintenanceTail: Promise<void> = Promise.resolve()
 let maintenancePending = 0
 
-const isRelevantTabUpdate = (change: chrome.tabs.TabChangeInfo) =>
+const isRelevantTabUpdate = (change: chrome.tabs.OnUpdatedInfo) =>
   change.status === "complete" ||
   !!change.url ||
   !!change.title ||
@@ -196,7 +196,7 @@ export const runWorkspaceDataOperation = async <T>(
   const requestedIds =
     typeof options?.materializeWorkspaceIds === "function"
       ? options.materializeWorkspaceIds()
-      : options?.materializeWorkspaceIds ?? []
+      : (options?.materializeWorkspaceIds ?? [])
   const ids = Array.from(new Set(requestedIds))
   try {
     await materializeChangedWorkspaces(ids, options?.preferredWindowId)

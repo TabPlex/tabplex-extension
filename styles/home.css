@@ -771,6 +771,8 @@
 
   .animated-list-container {
     @apply relative flex flex-1 min-h-0;
+    --animated-list-top-opacity: 0;
+    --animated-list-bottom-opacity: 1;
   }
 
   .animated-list-scroll {
@@ -794,6 +796,7 @@
     height: 56px;
     background: linear-gradient(to bottom, hsl(var(--background)), transparent);
     pointer-events: none;
+    opacity: var(--animated-list-top-opacity);
     transition: opacity 0.3s ease;
   }
 
@@ -805,6 +808,7 @@
     height: 80px;
     background: linear-gradient(to top, hsl(var(--background)), transparent);
     pointer-events: none;
+    opacity: var(--animated-list-bottom-opacity);
     transition: opacity 0.3s ease;
   }
 
@@ -1783,6 +1787,23 @@
 
     .workspace-grid .note-card {
       min-height: 320px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-skip-link,
+    .sidebar-item,
+    .sidebar-inner,
+    .sidebar-delete,
+    .home-content,
+    .workspace-divider::before,
+    .animated-list-top-gradient,
+    .animated-list-bottom-gradient,
+    .tab-item,
+    .tab-inner,
+    .tab-delete,
+    .note-placeholder {
+      transition-duration: 0s !important;
     }
   }
 

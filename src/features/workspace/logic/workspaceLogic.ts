@@ -52,7 +52,7 @@ export const sanitizeWorkspace = (tag: Workspace): Workspace => {
   const normalizedColor =
     workspace.color === undefined
       ? undefined
-      : normalizeWorkspaceColor(workspace.color) ?? null
+      : (normalizeWorkspaceColor(workspace.color) ?? null)
 
   return {
     ...workspace,
@@ -133,6 +133,6 @@ export const applyTabExclusion = (
         ...entry,
         tabs: entry.tabs.filter((tab) => tab.url !== result.tab?.url)
       }))
-    : workspace.history ?? []
+    : (workspace.history ?? [])
   return { ...result.workspace, history }
 }

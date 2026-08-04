@@ -98,7 +98,7 @@ export const AgentControlSettings = ({
     })
   }
 
-  const state = !enabled ? "disabled" : status?.state ?? "connecting"
+  const state = !enabled ? "disabled" : (status?.state ?? "connecting")
   const statusLabel = t(`settings.control.agentControl.status.${state}`)
   const copyLabel =
     feedback?.source === "copy"

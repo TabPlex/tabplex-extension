@@ -67,8 +67,8 @@ export const createWorkspace = async (options: CreateWorkspaceOptions = {}) => {
   const palette = colorChoices(settings.accentColor)
   const color =
     options.color === undefined
-      ? palette[Math.floor(Math.random() * palette.length)] ??
-        settings.accentColor
+      ? (palette[Math.floor(Math.random() * palette.length)] ??
+        settings.accentColor)
       : options.color
   const emoji =
     options.emoji === undefined

@@ -20,16 +20,14 @@ export type AgentRequest = {
 }
 
 export type AgentResponse =
-  | { ok: true; result?: unknown }
-  | { ok: false; error: string }
+  { ok: true; result?: unknown } | { ok: false; error: string }
 
 export type AgentRequestContext = {
   preferredWindowId?: number
 }
 
 type SwitchResult =
-  | { success: true }
-  | { success: false; reason?: string; error?: string }
+  { success: true } | { success: false; reason?: string; error?: string }
 
 export type AgentControlDeps = {
   loadSettings: () => Promise<Settings>
@@ -267,7 +265,7 @@ const createExecutors = (
         "error" in result && result.error
           ? result.error
           : "reason" in result
-            ? result.reason ?? "workspace-switch-failed"
+            ? (result.reason ?? "workspace-switch-failed")
             : "workspace-switch-failed"
     }
   },
