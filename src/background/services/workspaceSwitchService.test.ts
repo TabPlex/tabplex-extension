@@ -13,6 +13,7 @@ import {
   resumeWorkspaceWindowAutosave
 } from "./workspaceAutosave"
 import { requestCurrentWindowWorkspaceSwitch } from "./workspaceSwitchService"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
 import {
   captureWorkspaceWindowTabs,
   resolveNormalWindowId
@@ -26,6 +27,11 @@ const state = vi.hoisted(() => ({
 
 const orchestrator = vi.hoisted(() => ({
   switchWorkspace: vi.fn()
+}))
+const warmup = vi.hoisted(() => ({
+  cancelAll: vi.fn(async () => undefined),
+  cancel: vi.fn(async () => undefined),
+  start: vi.fn(async () => undefined)
 }))
 
 vi.mock("~core/storage", () => ({
@@ -81,6 +87,12 @@ vi.mock("./workspaceAutosave", () => ({
   }),
   resumeWorkspaceWindowAutosave: vi.fn(),
   suppressWorkspaceWindowAutosave: vi.fn()
+}))
+
+vi.mock("./workspaceTabWarmup", () => ({
+  cancelAllWorkspaceTabWarmups: warmup.cancelAll,
+  cancelWorkspaceTabWarmup: warmup.cancel,
+  startWorkspaceTabWarmup: warmup.start
 }))
 
 vi.mock("./workspaceWindowTabs", () => ({
@@ -179,7 +191,68 @@ describe("workspaceSwitchService", () => {
     })
   })
 
-  it("persists batch preparation progress without committing the binding", async () => {
+  it("prepares lightweight shells and starts all target loads", async () => {
+    orchestrator.switchWorkspace.mockImplementationOnce(
+      async (_windowId, _tabs, options) => {
+        await options.onTabPrepared?.(
+          { id: 21, windowId: 7 } as chrome.tabs.Tab,
+          "https://target.example",
+          "created"
+        )
+        await options.onBeforeCommit?.()
+      }
+    )
+
+    await expect(
+      requestCurrentWindowWorkspaceSwitch("target", {
+        preferredWindowId: 7
+      })
+    ).resolves.toEqual({ success: true })
+
+    expect(orchestrator.switchWorkspace).toHaveBeenCalledWith(
+      7,
+      state.workspaces[1].tabs,
+      expect.objectContaining({
+        createdTabPlaceholderUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        maxConcurrentTabLoads: "all"
+      })
+    )
+    expect(warmup.start).toHaveBeenCalledWith({
+      windowId: 7,
+      workspaceId: "target",
+      targets: [{ tabId: 21, url: "https://target.example" }]
+    })
+  })
+
+  it("restores the source if the target load queue cannot be persisted", async () => {
+    orchestrator.switchWorkspace.mockImplementationOnce(
+      async (_windowId, _tabs, options) => {
+        await options.onTabPrepared?.(
+          { id: 21, windowId: 7 } as chrome.tabs.Tab,
+          "https://target.example",
+          "created"
+        )
+        await options.onBeforeCommit?.()
+      }
+    )
+    warmup.start.mockRejectedValueOnce(new Error("warmup-persist-failed"))
+
+    await expect(
+      requestCurrentWindowWorkspaceSwitch("target", {
+        preferredWindowId: 7
+      })
+    ).resolves.toEqual({
+      success: false,
+      reason: "warmup-persist-failed",
+      error: "warmup-persist-failed"
+    })
+
+    expect(orchestrator.switchWorkspace).toHaveBeenCalledTimes(2)
+    expect(state.bindings["7"].workspaceId).toBe("source")
+    expect(state.journal).toBeNull()
+  })
+
+  it("persists rolling preparation progress without committing the binding", async () => {
     state.workspaces[1] = workspace(
       "target",
       Array.from({ length: 13 }, (_, index) => ({
@@ -191,14 +264,14 @@ describe("workspaceSwitchService", () => {
     const releaseCommit = deferred()
     orchestrator.switchWorkspace.mockImplementationOnce(
       async (_windowId, _tabs, options) => {
-        await options.onBatchPrepared?.({
+        await options.onPreparationProgress?.({
           preparedCount: 6,
-          batchSize: 6,
+          justPreparedCount: 1,
           remainingCount: 7
         })
-        await options.onBatchPrepared?.({
+        await options.onPreparationProgress?.({
           preparedCount: 12,
-          batchSize: 6,
+          justPreparedCount: 1,
           remainingCount: 1
         })
         progressReported.resolve()
@@ -411,6 +484,26 @@ describe("workspaceSwitchService", () => {
       tabsRevision: 2,
       stale: false
     })
+    expect(state.workspaces[0].tabs).toEqual([
+      { url: "https://source.example" }
+    ])
+  })
+
+  it("switches past corrupt blank tabs without overwriting the source", async () => {
+    vi.mocked(flushWorkspaceWindowAutosave).mockRejectedValueOnce(
+      new Error("workspace-window-tabs-corrupt-blank")
+    )
+    vi.mocked(captureWorkspaceWindowTabs).mockRejectedValueOnce(
+      new Error("workspace-window-tabs-corrupt-blank")
+    )
+
+    await expect(
+      requestCurrentWindowWorkspaceSwitch("target", {
+        preferredWindowId: 7
+      })
+    ).resolves.toEqual({ success: true })
+
+    expect(orchestrator.switchWorkspace).toHaveBeenCalledTimes(1)
     expect(state.workspaces[0].tabs).toEqual([
       { url: "https://source.example" }
     ])

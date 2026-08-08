@@ -3,14 +3,14 @@
 [![CI (main)](https://github.com/TabPlex/tabplex-extension/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TabPlex/tabplex-extension/actions/workflows/ci.yml)
 
 TabPlex is a local-first tab workspace extension for saving, recovering, and
-switching task context across Chrome or Edge windows (Manifest V3).
+switching task context in the current Chrome or Edge window (Manifest V3).
 
 ## Current Features
 
 - Save task workspaces with tab-group metadata, notes, linked resources, and a
   recoverable timeline.
 - Switch the current normal browser window with a persistent recovery journal
-  and configurable aggressive or soft tab restoration.
+  and rollback-safe tab restoration.
 - Search across workspace names, tab titles and URLs, linked resources, and
   notes.
 - Export and restore portable v3 backup files with bounded validation, a
@@ -29,6 +29,18 @@ created locally and are only written when the user explicitly exports one.
 Backup files use an 8 MiB safety limit. A matching checksum detects accidental
 or malicious file changes but does not authenticate who created the file.
 
+The required `storage` permission provides TabPlex-owned extension storage.
+The required `unlimitedStorage` permission removes Chrome's fixed
+`chrome.storage.local` quota for the existing workspace, timeline, note, and
+linked-resource features. It does not grant access to website content, enable
+network uploads, or provide cloud sync. TabPlex reports the current local usage;
+actual capacity remains bounded by available device storage. The separate
+8 MiB backup-file limit protects the MV3 worker while parsing untrusted JSON and
+is not a limit on the local workspace database.
+
+See the [privacy policy](PRIVACY.md) for the complete data and permission
+boundary, including the optional local Agent component.
+
 ## Development
 
 ```bash
@@ -39,6 +51,10 @@ pnpm dev
 
 Use Node 24 and the pnpm version declared in `package.json`. Load the dev build
 in Chrome from `build/chrome-mv3-dev`.
+
+For an optimized local build, run `pnpm build:chrome`, open
+`chrome://extensions`, enable Developer mode, choose **Load unpacked**, and
+select `build/chrome-mv3-prod`.
 
 ## Build & Package
 
@@ -62,13 +78,15 @@ Before a release, run the same gates as CI:
 ```bash
 pnpm format:check
 pnpm scan:secrets
-pnpm audit --audit-level high
+pnpm licenses:check
+pnpm audit:prod
 pnpm typecheck
 pnpm typecheck:unused
 pnpm typecheck:strictnull:core
 pnpm test
 pnpm build:chrome
 pnpm build:edge
+pnpm smoke:extension-pages -- build/chrome-mv3-prod build/edge-mv3-prod
 pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
 ```
 
@@ -85,6 +103,8 @@ On macOS, install the local host once for the currently loaded extension ID:
 ```bash
 pnpm agent:install -- --extension-id=<chrome-extension-id>
 ```
+
+For Edge, append `--browser=edge` and use the Edge extension ID.
 
 Then open **Settings → Control** and enable **Agent control**. The switch opens
 or closes the native connection immediately. The settings row can also copy a
@@ -137,4 +157,9 @@ regular Chrome pages. Customize them in `chrome://extensions/shortcuts`.
 ## Notes
 
 - Built with [Plasmo](https://docs.plasmo.com/).
-- Licensed under [AGPL-3.0-only](LICENSE).
+- Contributions are described in [CONTRIBUTING.md](CONTRIBUTING.md) and follow
+  the [Code of Conduct](CODE_OF_CONDUCT.md).
+- Report vulnerabilities through the private process in
+  [SECURITY.md](SECURITY.md), not a public issue.
+- TabPlex is licensed under [AGPL-3.0-only](LICENSE); bundled dependency notices
+  are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

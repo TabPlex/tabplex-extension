@@ -41,7 +41,11 @@ dist/
 .vscode/
 
 # Local tooling
-.agents/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/tabplex-agent-control/
+!/.agents/skills/tabplex-agent-control/**
 .claude/
 .codex/
 .cursor/
@@ -57,6 +61,7 @@ docs/*
 
 # Local cloud-only Supabase assets
 supabase/cloud/
+supabase/.temp/
 
 # Local audit artifacts
 AUDIT_REPORT.md

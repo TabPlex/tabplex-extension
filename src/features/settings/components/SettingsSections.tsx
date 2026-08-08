@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next"
 import { AccentColorPicker } from "~components/AccentColorPicker"
 import { Button } from "~components/ui/button"
 import { ExternalLinkIcon } from "~components/ui/external-link"
+import { GitHubIcon } from "~components/ui/github"
 import { MoonIcon } from "~components/ui/moon"
-import { Progress } from "~components/ui/progress"
 import {
   Select,
   SelectContent,
@@ -15,6 +15,7 @@ import {
 import { SunDimIcon } from "~components/ui/sun-dim"
 import { Switch } from "~components/ui/switch"
 import { ACCENT_PRESET_COLORS } from "~core/types"
+import { TABPLEX_SOURCE_URL } from "~core/utils/tabplexUrls"
 import type { LocalStorageUsageState } from "~features/settings/hooks/useLocalStorageUsage"
 import { openShortcutsManager } from "~features/shortcuts/commandShortcuts"
 import { cn } from "~lib/utils"
@@ -58,20 +59,12 @@ export const StorageSettingsSection = ({
       <div className="settings-storage-content">
         <div className="settings-storage-card flex flex-col gap-2 text-xs text-muted-foreground">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-foreground">
-              {t("storage.localTitle")}
+            <span className="setting-title">{t("storage.localTitle")}</span>
+            <span className="shrink-0 text-xs" role="status" aria-live="polite">
+              {localStorageStatus}
             </span>
-            <span className="shrink-0">{localStorageStatus}</span>
           </div>
-          {localStorage ? (
-            <Progress
-              value={localStorage.percent}
-              className="h-1.5"
-              aria-label={t("storage.localTitle")}
-              aria-valuetext={localStorageStatus}
-            />
-          ) : null}
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {localStorage?.hintLabel ?? localStorageStatus}
           </span>
         </div>
@@ -287,9 +280,7 @@ export const AboutAndDeveloperSections = ({
               v{version}
             </span>
           </div>
-          <div className="text-xs text-muted-foreground leading-relaxed">
-            {t("settings.about.desc")}
-          </div>
+          <div className="setting-desc">{t("settings.about.desc")}</div>
         </div>
         <div className="setting-list">
           <div className="setting-row settings-feedback-row">
@@ -324,6 +315,17 @@ export const AboutAndDeveloperSections = ({
                 {t("settings.about.feedback.email")}
               </Button>
             </div>
+          </div>
+          <div className="settings-about-footer">
+            <a
+              className="settings-github-link"
+              href={TABPLEX_SOURCE_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t("settings.about.github")}
+              title={t("settings.about.github")}>
+              <GitHubIcon size={18} aria-hidden="true" />
+            </a>
           </div>
         </div>
       </div>

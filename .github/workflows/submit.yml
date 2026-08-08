@@ -38,7 +38,8 @@ jobs:
         run: |
           pnpm format:check
           pnpm scan:secrets
-          pnpm audit --audit-level high
+          pnpm licenses:check
+          pnpm audit:prod
           pnpm typecheck
           pnpm typecheck:unused
           pnpm typecheck:strictnull:core

@@ -11,13 +11,15 @@ Use Node 24 and pnpm 10, then run:
 pnpm install --frozen-lockfile
 pnpm format:check
 pnpm scan:secrets
-pnpm audit --audit-level high
+pnpm licenses:check
+pnpm audit:prod
 pnpm typecheck
 pnpm typecheck:unused
 pnpm typecheck:strictnull:core
 pnpm test
 pnpm build:chrome
 pnpm build:edge
+pnpm smoke:extension-pages -- build/chrome-mv3-prod build/edge-mv3-prod
 pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
 ```
 
@@ -33,3 +35,7 @@ pairing/session material. Run `pnpm scan:secrets` before opening a pull request.
 
 By contributing, you agree that your contribution is licensed under the
 repository's AGPL-3.0-only license.
+
+Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Suspected
+security vulnerabilities must follow [SECURITY.md](SECURITY.md) instead of a
+public issue.

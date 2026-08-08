@@ -23,6 +23,9 @@ const dirtySuppressedWindowIds = new Set<number>()
 const mutationGenerationByWindow = new Map<number, number>()
 let drainPromise: Promise<void> | null = null
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
 const tabKey = (tab: TabSpec) =>
   JSON.stringify({
     url: tab.url,
@@ -166,13 +169,16 @@ const drainAutosaves = async () => {
       try {
         await flushWorkspaceWindowAutosave(windowId)
       } catch (error) {
-        if (
-          (error as Error).message ===
-          "workspace-autosave-tabs-changed-during-capture"
-        ) {
+        const message = getErrorMessage(error)
+        if (message === "workspace-autosave-tabs-changed-during-capture") {
           requestedWindowIds.add(windowId)
           continue
         }
+        // Loading pages and TabPlex placeholders are intentionally excluded
+        // from capture. Their later tab updates will schedule the next save;
+        // logging every intermediate state creates a warning storm without
+        // adding diagnostic value.
+        if (message === "workspace-window-tabs-busy") continue
         console.warn("[TabPlex] 当前窗口自动保存失败", windowId, error)
       }
     }

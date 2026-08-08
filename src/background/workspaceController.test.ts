@@ -47,6 +47,15 @@ vi.mock("./services/workspaceSwitchService", () => ({
     switching.requestCurrentWindowWorkspaceSwitch
 }))
 
+vi.mock("./services/workspaceTabWarmup", () => ({
+  cancelWorkspaceTabWarmup: vi.fn(),
+  handleWorkspaceTabWarmupActivated: vi.fn(),
+  handleWorkspaceTabWarmupAlarm: vi.fn(),
+  handleWorkspaceTabWarmupRemoved: vi.fn(),
+  handleWorkspaceTabWarmupUpdated: vi.fn(),
+  resumeWorkspaceTabWarmups: vi.fn()
+}))
+
 vi.mock("./services/workspaceWindowTabs", () => ({
   assertNormalWindow: vi.fn(),
   resolveNormalWindowId: vi.fn(async (windowId?: number) => windowId ?? 7)
@@ -60,6 +69,7 @@ describe("runWorkspaceDataOperation", () => {
     ;(globalThis as any).chrome = {
       alarms: { onAlarm: event() },
       tabs: {
+        onActivated: event(),
         onAttached: event(),
         onCreated: event(),
         onDetached: event(),

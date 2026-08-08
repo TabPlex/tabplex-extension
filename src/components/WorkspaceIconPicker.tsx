@@ -138,7 +138,7 @@ export const WorkspaceIconPicker = ({
             <>
               <Separator className="my-1" />
               <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-1">
+                <span className="px-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {t("home.workspace.iconPicker.colorLabel")}
                 </span>
                 <div className="flex flex-wrap gap-2 px-1">

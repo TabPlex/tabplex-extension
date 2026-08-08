@@ -6,6 +6,8 @@ Describe the user problem and the smallest complete solution.
 
 - [ ] `pnpm format:check`
 - [ ] `pnpm scan:secrets`
+- [ ] `pnpm licenses:check`
+- [ ] `pnpm audit:prod`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm typecheck:unused`
 - [ ] `pnpm typecheck:strictnull:core`

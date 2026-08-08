@@ -10,7 +10,7 @@
   }
 
   .tg-title {
-    @apply flex items-center text-[15px] font-semibold tracking-[-0.01em];
+    @apply flex items-center text-base font-semibold tracking-[-0.01em];
   }
 
   .tg-actions {
@@ -94,11 +94,11 @@
   }
 
   .tg-group-title {
-    @apply flex items-center justify-between px-2 pb-1 pt-2 text-[11px] font-semibold text-muted-foreground;
+    @apply flex items-center justify-between px-2 pb-1 pt-2 text-xs font-semibold text-muted-foreground;
   }
 
   .sort-label {
-    @apply cursor-pointer rounded-md border-0 bg-transparent px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+    @apply cursor-pointer rounded-md border-0 bg-transparent px-1.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
   }
 
   .sort-label.is-created {
@@ -141,7 +141,7 @@
   }
 
   .tg-workspace-name {
-    @apply flex min-w-0 items-center gap-1.5 text-[13px] font-medium leading-5;
+    @apply flex min-w-0 items-center gap-1.5 text-sm font-medium leading-5;
   }
 
   .tg-workspace-name-text {
@@ -149,12 +149,12 @@
   }
 
   .tg-workspace-pill {
-    @apply flex-shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium leading-3 text-primary-readable;
+    @apply flex-shrink-0 rounded-full bg-primary/15 px-1.5 py-0.5 text-[11px] font-medium leading-3 text-primary-readable;
     user-select: none;
   }
 
   .tg-workspace-meta {
-    @apply flex min-w-0 items-center gap-1.5 truncate text-[11px] leading-4 text-muted-foreground;
+    @apply flex min-w-0 items-center gap-1.5 truncate text-xs leading-4 text-muted-foreground;
     user-select: none;
   }
 
@@ -172,11 +172,11 @@
   }
 
   .tg-create-option-label {
-    @apply min-w-0 flex-1 truncate text-[13px] font-medium text-foreground;
+    @apply min-w-0 flex-1 truncate text-sm font-medium text-foreground;
   }
 
   .tg-create-option-hint {
-    @apply shrink-0 text-[10px] text-muted-foreground;
+    @apply shrink-0 text-[11px] text-muted-foreground;
   }
 
   .tg-switch-progress {
@@ -192,7 +192,7 @@
   }
 
   .tg-switch-progress-count {
-    @apply text-[10px] tabular-nums text-muted-foreground;
+    @apply text-[11px] tabular-nums text-muted-foreground;
   }
 
   .tg-switch-progress-bar {
@@ -208,7 +208,7 @@
   }
 
   .tg-keyboard-hint {
-    @apply shrink-0 pt-0.5 text-center text-[10px] leading-4 text-muted-foreground/80;
+    @apply shrink-0 pt-0.5 text-center text-[11px] leading-4 text-muted-foreground/80;
   }
 }
 

@@ -27,10 +27,19 @@ export const captureWorkspaceWindowTabs = async ({
   })
 
   if (projection.busy) throw new Error("workspace-window-tabs-busy")
-  if (
-    projection.unverifiable ||
-    projection.recordableTabIds.length !== projection.tabs.length
-  ) {
+  if (projection.unverifiable) {
+    const hasOnlyCorruptBlankTabs =
+      projection.diagnostics.unverifiable.length > 0 &&
+      projection.diagnostics.unverifiable.every(
+        ({ reason }) => reason === "blank-tab-without-safe-url"
+      )
+    throw new Error(
+      hasOnlyCorruptBlankTabs
+        ? "workspace-window-tabs-corrupt-blank"
+        : "workspace-window-tabs-unverifiable"
+    )
+  }
+  if (projection.recordableTabIds.length !== projection.tabs.length) {
     throw new Error("workspace-window-tabs-unverifiable")
   }
 

@@ -8,7 +8,6 @@ import React, {
 } from "react"
 import { useTranslation } from "react-i18next"
 
-import { ArrowLeftRightIcon } from "~components/ui/arrow-left-right"
 import { Button } from "~components/ui/button"
 import { DeleteIcon } from "~components/ui/delete"
 import {
@@ -53,25 +52,6 @@ export interface TabListProps {
   interactionLocked: boolean
 }
 
-const normalizeUrlForLookup = (value: string) => {
-  try {
-    const url = new URL(value)
-    const pathname = url.pathname.replace(/\/+$/, "")
-    const path = pathname || "/"
-    return `${url.origin}${path}${url.search}`
-  } catch {
-    return value.replace(/#.*$/, "").replace(/\/+$/, "")
-  }
-}
-
-const cssEscape = (value: string) => {
-  try {
-    return CSS.escape(value)
-  } catch {
-    return value.replaceAll(/["\\]/g, "\\$&")
-  }
-}
-
 const SelectedTabDestinationActions = ({
   selectionCount,
   workspaceMoveTargets,
@@ -88,35 +68,30 @@ const SelectedTabDestinationActions = ({
 
   return (
     <div className="tab-destination-actions">
-      <Tooltip>
-        <DropdownMenu>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                className="tab-icon-button"
-                aria-label={moveLabel}
-                title={moveLabel}
-                disabled={
-                  busy || !selectionCount || !workspaceMoveTargets.length
-                }>
-                <ArrowLeftRightIcon />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <DropdownMenuContent align="end" className="tab-destination-menu">
-            {workspaceMoveTargets.map((target) => (
-              <DropdownMenuItem
-                key={target.id}
-                onClick={() => onMoveToWorkspace?.(target.id)}>
-                {target.name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <TooltipContent>{moveLabel}</TooltipContent>
-      </Tooltip>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            className="tab-destination-trigger"
+            aria-label={moveLabel}
+            disabled={busy || !selectionCount || !workspaceMoveTargets.length}>
+            <span>{moveLabel}</span>
+            <span className="tab-destination-arrow" aria-hidden="true">
+              →
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="tab-destination-menu">
+          {workspaceMoveTargets.map((target) => (
+            <DropdownMenuItem
+              key={target.id}
+              onClick={() => onMoveToWorkspace?.(target.id)}>
+              {target.name}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
@@ -143,13 +118,9 @@ export const TabList = memo(function TabList({
 }: TabListProps) {
   const { t } = useTranslation()
   const listRef = useRef<HTMLUListElement | null>(null)
-  const [locatedUrlKey, setLocatedUrlKey] = useState<string | null>(null)
+  const [locatedTabIndex, setLocatedTabIndex] = useState<number | null>(null)
   const clearLocateTimerRef = useRef<number | null>(null)
 
-  const normalizedUrls = useMemo(
-    () => listTabs.map((tab) => normalizeUrlForLookup(tab.url)),
-    [listTabs]
-  )
   const selectedTabIndexSet = useMemo(
     () => new Set(selectedTabIndexes),
     [selectedTabIndexes]
@@ -170,18 +141,20 @@ export const TabList = memo(function TabList({
 
   useEffect(() => {
     if (!locateRequest?.url) return
-    const targetKey = normalizeUrlForLookup(locateRequest.url)
-
-    if (!normalizedUrls.includes(targetKey)) return
+    const targetUrl = locateRequest.url.trim()
+    const targetIndex = listTabs.findIndex(
+      (tab) => tab.url.trim() === targetUrl
+    )
+    if (targetIndex < 0) return
 
     const list = listRef.current
     if (!list) return
 
-    const selector = `[data-tab-url-key="${cssEscape(targetKey)}"]`
+    const selector = `[data-tab-index="${targetIndex}"]`
     const element = list.querySelector<HTMLElement>(selector)
     if (!element) return
 
-    setLocatedUrlKey(targetKey)
+    setLocatedTabIndex(targetIndex)
     try {
       element.scrollIntoView({ behavior: "smooth", block: "center" })
     } catch {
@@ -193,9 +166,9 @@ export const TabList = memo(function TabList({
     }
     clearLocateTimerRef.current = window.setTimeout(() => {
       clearLocateTimerRef.current = null
-      setLocatedUrlKey(null)
+      setLocatedTabIndex(null)
     }, 1600)
-  }, [locateRequest?.id, locateRequest?.url, normalizedUrls])
+  }, [listTabs, locateRequest?.id, locateRequest?.url])
 
   const renderEditableTabItem = ({
     tab,
@@ -207,7 +180,6 @@ export const TabList = memo(function TabList({
     key: string
   }) => {
     const { host, display: linkText } = describeUrl(tab.url)
-    const urlKey = normalizeUrlForLookup(tab.url)
     const titleText = getTabDisplayTitle(tab, host || tab.url)
     const isChecked = tabSelectionMode && selectedTabIndexSet.has(index)
     const isDragging = draggedTabIndexSet.has(index)
@@ -215,13 +187,20 @@ export const TabList = memo(function TabList({
     const itemClass = `tab-item${
       tabSelectionMode ? " is-selecting" : ""
     }${isChecked ? " is-selected" : ""}${isDragging ? " is-dragging" : ""}${
-      locatedUrlKey === urlKey ? " is-located" : ""
+      locatedTabIndex === index ? " is-located" : ""
     }`
     const wrapperClass = `tab-item-wrapper${
       tabSelectionMode ? " is-selecting" : ""
     }${isDragging ? " is-dragging" : ""}${
       interactionLocked ? " is-readonly" : ""
     }`
+    const activateTabItem = (range: boolean) => {
+      if (tabSelectionMode) {
+        onToggleTabIndex(index, { range })
+        return
+      }
+      void onOpenTab(tab)
+    }
 
     return (
       <li key={key} className={wrapperClass}>
@@ -248,33 +227,34 @@ export const TabList = memo(function TabList({
         </div>
         <div
           className={itemClass}
-          data-tab-url-key={urlKey}
+          data-tab-index={index}
           role="button"
           tabIndex={0}
+          aria-pressed={tabSelectionMode ? isChecked : undefined}
           draggable={canDrag}
           onDragStart={(event) => onTabDragStart(event, index)}
           onDragEnd={onTabDragEnd}
           onClick={(event) => {
+            if (event.detail > 0) event.currentTarget.blur()
             if (tabSelectionMode) {
               event.preventDefault()
               event.stopPropagation()
-              onToggleTabIndex(index, {
-                range: event.shiftKey
-              })
+              activateTabItem(event.shiftKey)
               return
             }
-            void onOpenTab(tab)
+            activateTabItem(event.shiftKey)
           }}
           onKeyDown={(event) => {
-            if (event.key !== "Enter" && event.key !== " ") return
-            event.preventDefault()
-            if (tabSelectionMode) {
-              onToggleTabIndex(index, {
-                range: event.shiftKey
-              })
-              return
+            if (event.key === "Enter") {
+              event.preventDefault()
+              activateTabItem(event.shiftKey)
             }
-            void onOpenTab(tab)
+            if (event.key === " ") event.preventDefault()
+          }}
+          onKeyUp={(event) => {
+            if (event.key !== " ") return
+            event.preventDefault()
+            activateTabItem(event.shiftKey)
           }}>
           <div className="tab-inner">
             <div className="tab-main">
@@ -290,7 +270,7 @@ export const TabList = memo(function TabList({
                   }}
                 />
               ) : (
-                <span className="tab-icon fallback">
+                <span className="tab-icon fallback" aria-hidden="true">
                   {host.slice(0, 1).toUpperCase() || "·"}
                 </span>
               )}
@@ -337,7 +317,12 @@ export const TabList = memo(function TabList({
           </div>
           <div
             className={`tab-toolbar${tabSelectionMode ? " is-selection" : ""}`}>
-            <div className="flex items-center gap-2">
+            <div
+              className={
+                tabSelectionMode
+                  ? "tab-selection-actions"
+                  : "flex items-center gap-2"
+              }>
               {tabSelectionMode ? (
                 <span className="tab-selection-count">
                   {t("home.tabs.selectionCount", { count: selectionCount })}
@@ -351,12 +336,15 @@ export const TabList = memo(function TabList({
                   onMoveToWorkspace={onMoveSelectedTabsToWorkspace}
                 />
               ) : null}
+              {tabSelectionMode ? (
+                <span className="tab-selection-divider" aria-hidden="true" />
+              ) : null}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     className={`tab-icon-button${
-                      tabSelectionMode ? " is-active" : ""
+                      tabSelectionMode ? " tab-selection-exit is-active" : ""
                     }`}
                     aria-pressed={tabSelectionMode}
                     aria-label={

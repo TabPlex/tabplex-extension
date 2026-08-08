@@ -1,7 +1,7 @@
 {
   "settings": {
     "title": "Settings",
-    "description": "Manage appearance, controls, local storage, and recovery.",
+    "description": "Manage appearance, controls, local storage, and backups.",
     "sections": {
       "general": "General",
       "appearance": "Appearance",
@@ -143,7 +143,7 @@
     "control": {
       "agentControl": {
         "title": "Agent control",
-        "desc": "Let local Agents use a Skill to operate workspaces, tabs, and settings while TabPlex validates every safe write.",
+        "desc": "Allow local Agents to use a Skill to manage workspaces, tabs, and settings, with TabPlex validating each write before it is applied.",
         "copyInstructions": "Create Skill",
         "copied": "Instructions copied",
         "copyFailed": "Copy failed. Please try again.",
@@ -170,10 +170,11 @@
       }
     },
     "about": {
-      "desc": "TabPlex is a workspace tool to help you manage browser tabs efficiently.",
+      "desc": "Group tabs into workspaces and switch contexts safely to keep research and work focused.",
+      "github": "View TabPlex on GitHub",
       "feedback": {
         "title": "Feedback",
-        "desc": "Tell us what went wrong or what you would like TabPlex to do next. Include logs with bug reports to help us diagnose issues faster.",
+        "desc": "TabPlex is an open-source project we maintain together. Report issues, share ideas, or contribute code; attach logs to bug reports to make diagnosis easier.",
         "copy": "Copy logs",
         "email": "Email feedback",
         "copied": "Logs copied.",
@@ -187,7 +188,7 @@
   "theme": {
     "dark": "Dark",
     "light": "Light",
-    "system": "Browser"
+    "system": "Follow browser"
   },
   "common": {
     "skipToContent": "Skip to main content",
@@ -209,9 +210,9 @@
   "storage": {
     "title": "Storage",
     "localTitle": "Local storage",
-    "usage": "{{used}} / {{limit}}",
+    "usage": "{{used}} used",
     "trashUsage": "Trash uses {{used}}",
-    "localHint": "Chrome limit {{limit}}.",
+    "localHint": "Stored only on this device.",
     "reading": "Reading…",
     "unavailable": "Storage usage is temporarily unavailable",
     "backup": {
@@ -353,7 +354,7 @@
       "excludedBadge": "Excluded",
       "lastAccessed": "Last visited {{time}}",
       "selectionActions": {
-        "moveToWorkspace": "Move to another workspace"
+        "moveToWorkspace": "Move to"
       },
       "empty": "This workspace has no pages yet. Drag tabs from your browser or use the button above to add."
     },
@@ -435,8 +436,8 @@
       "listEmpty": "No matching deleted workspaces.",
       "restore": "Restore Workspace",
       "deletePermanently": "Delete Permanently",
-      "deletedAt": "Deleted {{time}}",
-      "deletedAtShort": "Deleted",
+      "deletedAt": "Moved {{time}}",
+      "deletedAtShort": "Moved",
       "pill": "Deleted"
     }
   },
@@ -452,14 +453,14 @@
       "recentUpdate": "Updated · {{time}}"
     },
     "snapshot": {
-      "title": "Snapshot",
+      "title": "Tabs at this point",
       "empty": "No pages in this snapshot."
     },
     "diff": {
-      "added": "+{{count}} tabs",
-      "added_one": "+{{count}} tab",
-      "removed": "-{{count}} tabs",
-      "removed_one": "-{{count}} tab",
+      "added": "Added {{count}} tabs",
+      "added_one": "Added {{count}} tab",
+      "removed": "Removed {{count}} tabs",
+      "removed_one": "Removed {{count}} tab",
       "none": "No page changes",
       "titleAdded": "Added",
       "titleRemoved": "Removed",

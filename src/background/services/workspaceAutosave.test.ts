@@ -162,4 +162,25 @@ describe("workspaceAutosave", () => {
       stale: false
     })
   })
+
+  it("does not warn while window tabs are intentionally busy", async () => {
+    vi.mocked(captureWorkspaceWindowTabs).mockRejectedValueOnce(
+      new Error("workspace-window-tabs-busy")
+    )
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined)
+
+    try {
+      noteWorkspaceWindowMutation(7)
+      await vi.waitFor(() =>
+        expect(captureWorkspaceWindowTabs).toHaveBeenCalledTimes(1)
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+
+      expect(warn).not.toHaveBeenCalled()
+      expect(state.workspaces[0].tabs).toEqual([{ url: "https://old.example" }])
+    } finally {
+      warn.mockRestore()
+    }
+  })
 })

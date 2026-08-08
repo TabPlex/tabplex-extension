@@ -14,6 +14,10 @@ import { extname, join, relative, resolve, sep } from "node:path"
 
 const DEFAULT_ARTIFACTS = ["build/chrome-mv3-prod", "build/edge-mv3-prod"]
 const RELEASE_DESCRIPTION_ENV = "TABPLEX_RELEASE_DESCRIPTION"
+const RELEASE_TAG_ENV = "TABPLEX_RELEASE_TAG"
+const PACKAGE_VERSION = JSON.parse(
+  readFileSync(resolve("package.json"), "utf8")
+).version
 
 const EXPECTED_PERMISSIONS = new Set([
   "alarms",
@@ -21,6 +25,7 @@ const EXPECTED_PERMISSIONS = new Set([
   "storage",
   "tabGroups",
   "tabs",
+  "unlimitedStorage",
   "windows"
 ])
 
@@ -32,6 +37,7 @@ const FORBIDDEN_MANIFEST_ARRAY_FIELDS = [
   "optional_permissions",
   "web_accessible_resources"
 ]
+const REQUIRED_LEGAL_FILES = ["LICENSE", "PRIVACY.md", "THIRD_PARTY_NOTICES.md"]
 const TEXT_EXTENSIONS = new Set([".css", ".html", ".js", ".json"])
 
 const failures = []
@@ -108,6 +114,12 @@ const verifyManifest = (root, artifact, manifest, expectedDescription) => {
   if (!manifest) return
   if (manifest.manifest_version !== 3) {
     reportFailure(artifact, "只允许 Manifest V3")
+  }
+  if (manifest.version !== PACKAGE_VERSION) {
+    reportFailure(
+      artifact,
+      `manifest.version 必须与 package.json 版本 ${PACKAGE_VERSION} 一致`
+    )
   }
 
   const permissions = new Set(manifest.permissions ?? [])
@@ -235,6 +247,11 @@ const verifyArtifactDirectory = (root, artifact, expectedDescription) => {
     return []
   }
   const files = listFiles(root, artifact)
+  for (const filename of REQUIRED_LEGAL_FILES) {
+    if (!existsSync(join(root, filename))) {
+      reportFailure(artifact, `缺少发布法律文件 ${filename}`)
+    }
+  }
   const manifest = readManifest(root, artifact)
   verifyManifest(root, artifact, manifest, expectedDescription)
   verifyHtmlReferences(root, artifact, files)
@@ -419,6 +436,19 @@ const validateExpectedDescription = (releaseMode) => {
   return description
 }
 
+const validateReleaseTag = (releaseMode) => {
+  if (!releaseMode) return
+  const tag = process.env[RELEASE_TAG_ENV]?.trim()
+  if (!tag) return
+  const expectedTag = `v${PACKAGE_VERSION}`
+  if (tag !== expectedTag) {
+    reportFailure(
+      "release",
+      `${RELEASE_TAG_ENV} 必须是 ${expectedTag}，当前为 ${tag}`
+    )
+  }
+}
+
 const normalizeArtifactPair = (path) => {
   if (path.endsWith(".zip")) {
     return { directory: path.slice(0, -4), zipPath: path, explicitZip: true }
@@ -428,6 +458,7 @@ const normalizeArtifactPair = (path) => {
 
 const { releaseMode, paths } = parseArguments()
 const expectedDescription = validateExpectedDescription(releaseMode)
+validateReleaseTag(releaseMode)
 const pairs = new Map()
 
 for (const path of paths) {

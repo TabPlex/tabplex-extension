@@ -21,25 +21,8 @@ const LEGACY_STORAGE_KEYS = {
   workspaceVirtualWindowLayouts: "workspaceVirtualWindowLayouts"
 } as const
 
-const assertLocalStorageQuota = async () => {
+const localSet = async (items: Record<string, unknown>) => {
   if (typeof chrome === "undefined" || !chrome.storage?.local) return
-  const quotaBytes = chrome.storage.local.QUOTA_BYTES
-  if (typeof quotaBytes !== "number" || quotaBytes <= 0) return
-  const used = await chrome.storage.local.getBytesInUse(null)
-  if (typeof used !== "number") return
-  if (used > quotaBytes * 0.9) {
-    throw new Error("存储空间不足，请清理旧工作区或减少快照历史")
-  }
-}
-
-const localSet = async (
-  items: Record<string, unknown>,
-  options?: { preflightQuota?: boolean }
-) => {
-  if (typeof chrome === "undefined" || !chrome.storage?.local) return
-  if (options?.preflightQuota) {
-    await assertLocalStorageQuota()
-  }
   try {
     await chrome.storage.local.set(items)
   } catch (err) {
@@ -485,10 +468,7 @@ export const saveWorkspaces = async (workspaces: Workspace[]) => {
       new Map()
     )
   )
-  await localSet(
-    { [STORAGE_KEYS.WORKSPACES]: normalized },
-    { preflightQuota: true }
-  )
+  await localSet({ [STORAGE_KEYS.WORKSPACES]: normalized })
 }
 
 const normalizeWorkspaceWindowBinding = (
@@ -739,7 +719,10 @@ export const splitSettingsForStorage = (settings: Settings) => {
   }
 
   return {
-    localSettings: { devMode, agentControlEnabled },
+    localSettings: {
+      devMode,
+      agentControlEnabled
+    },
     portableSettings
   }
 }

@@ -72,7 +72,7 @@ const ALLOWED_SYNC_KEYS = new Set<string>([
   ...LEGACY_SYNC_KEYS
 ])
 
-const QUOTA_SAFETY_RATIO = 0.9
+const SYNC_QUOTA_SAFETY_RATIO = 0.9
 const MAX_RESTORE_JOURNAL_BYTES = 12 * 1024 * 1024
 const MAX_RESTORE_JOURNAL_STRING_BYTES = 10 * 1024 * 1024
 
@@ -404,8 +404,7 @@ const estimateMutationBytes = (items: Record<string, unknown>) =>
     0
   )
 
-const assertProjectedQuota = async (
-  areaName: "local" | "sync",
+const assertProjectedSyncQuota = async (
   area: BackupRestoreStorageArea,
   mutation: StorageMutation,
   targetKeys: string[]
@@ -418,8 +417,8 @@ const assertProjectedQuota = async (
     ])
     const projectedBytes =
       usedBytes - replacedBytes + estimateMutationBytes(mutation.setItems)
-    if (projectedBytes > quotaBytes * QUOTA_SAFETY_RATIO) {
-      throw new BackupRestoreError(`backup-restore-quota-exceeded:${areaName}`)
+    if (projectedBytes > quotaBytes * SYNC_QUOTA_SAFETY_RATIO) {
+      throw new BackupRestoreError("backup-restore-quota-exceeded:sync")
     }
   }
 
@@ -428,7 +427,7 @@ const assertProjectedQuota = async (
     for (const [key, value] of Object.entries(mutation.setItems)) {
       if (estimateEntryBytes(key, value) > perItemQuota) {
         throw new BackupRestoreError(
-          `backup-restore-item-quota-exceeded:${areaName}:${key}`
+          `backup-restore-item-quota-exceeded:sync:${key}`
         )
       }
     }
@@ -628,20 +627,11 @@ const runRestoreTransaction = async (
   await runCheckpoint(dependencies, "after-snapshot")
 
   const mutations = buildMutations(plan, localBefore, syncBefore)
-  await Promise.all([
-    assertProjectedQuota(
-      "local",
-      dependencies.local,
-      mutations.local,
-      localMutationKeys
-    ),
-    assertProjectedQuota(
-      "sync",
-      dependencies.sync,
-      mutations.sync,
-      syncMutationKeys
-    )
-  ])
+  await assertProjectedSyncQuota(
+    dependencies.sync,
+    mutations.sync,
+    syncMutationKeys
+  )
   await runCheckpoint(dependencies, "after-quota-check")
 
   const localAfter = applyMutationToSnapshot(

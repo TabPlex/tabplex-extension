@@ -25,6 +25,14 @@ import {
   type WorkspaceSwitchRequestOptions
 } from "./services/workspaceSwitchService"
 import {
+  cancelWorkspaceTabWarmup,
+  handleWorkspaceTabWarmupActivated,
+  handleWorkspaceTabWarmupAlarm,
+  handleWorkspaceTabWarmupRemoved,
+  handleWorkspaceTabWarmupUpdated,
+  resumeWorkspaceTabWarmups
+} from "./services/workspaceTabWarmup"
+import {
   assertNormalWindow,
   resolveNormalWindowId
 } from "./services/workspaceWindowTabs"
@@ -59,30 +67,36 @@ const registerControllerListeners = () => {
   if (listenersRegistered) return
   listenersRegistered = true
 
-  chrome.tabs?.onUpdated?.addListener((_tabId, change, tab) => {
+  chrome.tabs?.onUpdated?.addListener((tabId, change, tab) => {
+    handleWorkspaceTabWarmupUpdated(tabId, change, tab)
     if (isRelevantTabUpdate(change)) noteWorkspaceWindowMutation(tab.windowId)
   })
+  chrome.tabs?.onActivated?.addListener(handleWorkspaceTabWarmupActivated)
   chrome.tabs?.onCreated?.addListener((tab) => {
     noteWorkspaceWindowMutation(tab.windowId)
   })
   chrome.tabs?.onRemoved?.addListener((tabId, info) => {
     unmarkTabClosing(tabId)
+    handleWorkspaceTabWarmupRemoved(info.windowId)
     noteWorkspaceWindowMutation(info.windowId)
   })
   chrome.tabs?.onMoved?.addListener((_tabId, info) => {
     noteWorkspaceWindowMutation(info.windowId)
   })
   chrome.tabs?.onDetached?.addListener((_tabId, info) => {
+    handleWorkspaceTabWarmupRemoved(info.oldWindowId)
     noteWorkspaceWindowMutation(info.oldWindowId)
   })
   chrome.tabs?.onAttached?.addListener((_tabId, info) => {
     noteWorkspaceWindowMutation(info.newWindowId)
   })
   chrome.windows?.onRemoved?.addListener((windowId) => {
+    void cancelWorkspaceTabWarmup(windowId)
     void removeWorkspaceWindowBinding(windowId)
   })
   chrome.alarms?.onAlarm?.addListener((alarm) => {
     handleWorkspaceSwitchTimeoutAlarm(alarm.name)
+    handleWorkspaceTabWarmupAlarm(alarm.name)
   })
 }
 
@@ -98,6 +112,7 @@ export const initWorkspaceController = (gate?: Promise<unknown>) => {
   initializationPromise = startupGate
     .then(async () => {
       await recoverPendingWorkspaceSwitch()
+      await resumeWorkspaceTabWarmups()
     })
     .catch((error) => {
       initializationPromise = null

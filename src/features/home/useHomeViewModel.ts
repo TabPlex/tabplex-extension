@@ -108,7 +108,7 @@ export const useHomeViewModel = () => {
     dnd,
     data: {
       workspaceManager,
-      localStorageBytes: storageUsage.bytes
+      storageUsage
     }
   }
 }

@@ -4,6 +4,7 @@ import {
   projectRecordableWindowTabs,
   type RecordableWindowTabLike
 } from "./recordableWindowTabs"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
 
 const tab = (
   index: number,
@@ -119,6 +120,48 @@ describe("projectRecordableWindowTabs", () => {
         tabId: 23,
         index: 0,
         reason: "error-page-without-safe-pending-url"
+      }
+    ])
+  })
+
+  it("marks a blank tab without a committed or pending URL as unverifiable", () => {
+    const result = projectRecordableWindowTabs({
+      tabs: [
+        tab(0, "", {
+          id: 24,
+          pendingUrl: undefined,
+          status: "loading"
+        })
+      ],
+      isHomeUrl
+    })
+
+    expect(result.tabs).toEqual([])
+    expect(result.busy).toBe(false)
+    expect(result.unverifiable).toBe(true)
+    expect(result.diagnostics.unverifiable).toEqual([
+      {
+        tabId: 24,
+        index: 0,
+        reason: "blank-tab-without-safe-url"
+      }
+    ])
+  })
+
+  it("keeps an unfinished workspace placeholder out of autosave", () => {
+    const result = projectRecordableWindowTabs({
+      tabs: [tab(0, WORKSPACE_TAB_LOAD_PLACEHOLDER_URL, { id: 25 })],
+      isHomeUrl
+    })
+
+    expect(result.tabs).toEqual([])
+    expect(result.busy).toBe(true)
+    expect(result.diagnostics.busy).toEqual([
+      {
+        tabId: 25,
+        index: 0,
+        reason: "workspace-load-placeholder",
+        urlSource: "url"
       }
     ])
   })

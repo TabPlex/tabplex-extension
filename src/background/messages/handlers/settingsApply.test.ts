@@ -45,6 +45,8 @@ describe("settingsApply handler", () => {
     ["accentColor", "red"],
     ["tabRestoreMode", "soft"],
     ["agentControlEnabled", "true"],
+    ["workspaceTabLoadConcurrency", 3],
+    ["workspaceTabLoadConcurrency", "all"],
     ["switchMode", "replaceCurrentWindow"],
     ["unknown", true]
   ])("rejects an invalid %s update", async (key, value) => {

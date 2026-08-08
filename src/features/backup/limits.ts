@@ -1,6 +1,6 @@
 export const BACKUP_LIMITS = Object.freeze({
-  // Keep restore parsing comfortably below chrome.storage.local's 10 MiB
-  // budget. Parsing, canonicalization and import planning temporarily retain
+  // This is an untrusted-input memory safety boundary, not a local storage
+  // quota. Parsing, canonicalization and import planning temporarily retain
   // more than one representation of the file in an MV3 worker.
   maxBytes: 8 * 1024 * 1024,
   maxAggregateStringBytes: 6 * 1024 * 1024,

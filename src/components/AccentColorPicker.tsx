@@ -1,6 +1,7 @@
 import React from "react"
+import { HexColorInput, HexColorPicker } from "react-colorful"
 
-import { CheckIcon } from "~components/ui/check"
+import { Popover, PopoverContent, PopoverTrigger } from "~components/ui/popover"
 import { cn } from "~lib/utils"
 
 type AccentColorPickerProps = {
@@ -29,33 +30,78 @@ export const AccentColorPicker = ({
   titleClassName
 }: AccentColorPickerProps) => {
   const prefix = `${classPrefix}-accent`
-  const showCheck = classPrefix === "settings"
   const titleRowClass = `${prefix}-title-row`
   const pickerClass = `${prefix}-picker`
+  const pickerPreviewClass = `${prefix}-picker-preview`
+  const popoverClass = `${prefix}-popover`
+  const controlClass = `${prefix}-control`
+  const valueRowClass = `${prefix}-value-row`
+  const valueLabelClass = `${prefix}-value-label`
+  const valueInputClass = `${prefix}-value-input`
   const swatchesClass = `${prefix}-swatches`
   const swatchClass = `${prefix}-swatch`
-  const checkClass = `${prefix}-check`
   const handleSwatchClick = (color: string) => {
     onChange(color)
     onCommit?.(color)
   }
 
-  const handleInputCommit = (event: React.PointerEvent<HTMLInputElement>) => {
-    onCommit?.(event.currentTarget.value)
+  const handleHexInputChange = (color: string) => {
+    if (/^#[0-9a-f]{6}$/i.test(color)) onChange(color)
+  }
+
+  const commitHexInputValue = (color: string) => {
+    if (!/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)) return
+    onChange(color)
+    onCommit?.(color)
   }
 
   const picker = (
-    <label className={pickerClass} htmlFor={inputId}>
-      <span>{inputLabel}</span>
-      <input
-        id={inputId}
-        type="color"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onPointerUp={handleInputCommit}
-        onBlur={(event) => onCommit?.(event.currentTarget.value)}
-      />
-    </label>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={pickerClass}
+          aria-label={`${inputLabel} ${value.toUpperCase()}`}>
+          <span>{inputLabel}</span>
+          <span
+            className={pickerPreviewClass}
+            style={{ backgroundColor: value }}
+            aria-hidden="true"
+          />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={8} className={popoverClass}>
+        <HexColorPicker
+          color={value}
+          onChange={onChange}
+          onChangeEnd={(color) => onCommit?.(color)}
+          className={controlClass}
+          aria-label={inputLabel}
+        />
+        <label className={valueRowClass} htmlFor={inputId}>
+          <span className={valueLabelClass}>HEX</span>
+          <HexColorInput
+            id={inputId}
+            color={value}
+            onChange={handleHexInputChange}
+            onBlur={(event) => commitHexInputValue(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return
+              commitHexInputValue(event.currentTarget.value)
+              event.currentTarget.blur()
+            }}
+            className={valueInputClass}
+            aria-label={inputLabel}
+            prefixed
+          />
+          <span
+            className={pickerPreviewClass}
+            style={{ backgroundColor: value }}
+            aria-hidden="true"
+          />
+        </label>
+      </PopoverContent>
+    </Popover>
   )
 
   const titleRow = title ? (
@@ -80,9 +126,6 @@ export const AccentColorPicker = ({
             onClick={() => handleSwatchClick(color)}
             aria-pressed={isActive}
             title={color}>
-            {isActive && showCheck ? (
-              <CheckIcon className={checkClass} />
-            ) : null}
             <span className="sr-only">
               {srLabel ? `${srLabel} ${color}` : color}
             </span>

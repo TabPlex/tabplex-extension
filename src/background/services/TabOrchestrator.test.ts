@@ -4,6 +4,7 @@ import type { TabSpec } from "~core/types"
 
 import * as closingTabs from "./closingTabs"
 import { TabOrchestrator } from "./TabOrchestrator"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
 
 vi.mock("./closingTabs", () => ({
   markTabsClosing: vi.fn(),
@@ -66,6 +67,17 @@ const setupChrome = (initialTabs: chrome.tabs.Tab[]) => {
         return { ...liveTabs[index] }
       }
     ),
+    discard: vi.fn(async (tabId: number) => {
+      const index = liveTabs.findIndex((item) => item.id === tabId)
+      if (index < 0) throw new Error("No tab with id")
+      if (liveTabs[index].active) return undefined
+      liveTabs[index] = {
+        ...liveTabs[index],
+        discarded: true,
+        status: undefined
+      }
+      return { ...liveTabs[index] }
+    }),
     remove: vi.fn(async (ids: number | number[]) => {
       const removing = new Set(Array.isArray(ids) ? ids : [ids])
       liveTabs = liveTabs.filter((item) => !removing.has(item.id!))
@@ -158,6 +170,330 @@ describe("TabOrchestrator current-window switching", () => {
     )
   })
 
+  it("creates lightweight placeholders without starting target navigation", async () => {
+    const { tabs, getLiveTabs } = setupChrome([
+      tab(1, "https://source.example")
+    ])
+    const onTabPrepared = vi.fn()
+
+    await new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      {
+        createdTabPlaceholderUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        onTabPrepared
+      }
+    )
+
+    expect(tabs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        active: false
+      })
+    )
+    expect(tabs.update).not.toHaveBeenCalledWith(
+      10,
+      expect.objectContaining({ url: "https://target.example" })
+    )
+    expect(getLiveTabs().find((item) => item.id === 10)?.url).toBe(
+      WORKSPACE_TAB_LOAD_PLACEHOLDER_URL
+    )
+    expect(onTabPrepared).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 10 }),
+      "https://target.example",
+      "created"
+    )
+  })
+
+  it("waits for a placeholder URL to commit before exposing it to warmup", async () => {
+    vi.useFakeTimers()
+    const { tabs, updateLiveTab } = setupChrome([
+      tab(1, "https://source.example")
+    ])
+    const defaultCreate = tabs.create.getMockImplementation()!
+    const onTabPrepared = vi.fn()
+    tabs.create.mockImplementationOnce(async (info) => {
+      const created = await defaultCreate(info)
+      updateLiveTab(created.id!, {
+        url: "",
+        pendingUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        status: "loading"
+      })
+      return {
+        ...created,
+        url: "",
+        pendingUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        status: "loading"
+      }
+    })
+
+    const switching = new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      {
+        createdTabPlaceholderUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        onTabPrepared
+      }
+    )
+
+    await vi.advanceTimersByTimeAsync(49)
+    expect(onTabPrepared).not.toHaveBeenCalled()
+
+    updateLiveTab(10, {
+      url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+      pendingUrl: undefined,
+      status: "loading"
+    })
+    await vi.advanceTimersByTimeAsync(1)
+    await switching
+
+    expect(onTabPrepared).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 10,
+        url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        status: "loading"
+      }),
+      "https://target.example",
+      "created"
+    )
+  })
+
+  it("discards newly created targets after their URL is committed", async () => {
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs } = setupChrome([tab(1, homeUrl, { pinned: true })])
+
+    await new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      { discardCreatedTabs: true }
+    )
+
+    expect(tabs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: "https://target.example",
+        active: false
+      })
+    )
+    expect(tabs.discard).toHaveBeenCalledWith(10)
+  })
+
+  it("waits for a safe pending target URL to commit before discarding", async () => {
+    vi.useFakeTimers()
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, updateLiveTab } = setupChrome([
+      tab(1, homeUrl, { pinned: true })
+    ])
+    const defaultCreate = tabs.create.getMockImplementation()!
+    tabs.create.mockImplementationOnce(async (info) => {
+      const created = await defaultCreate(info)
+      updateLiveTab(created.id!, {
+        url: "",
+        pendingUrl: String(info.url),
+        status: "loading"
+      })
+      return {
+        ...created,
+        url: "",
+        pendingUrl: String(info.url),
+        status: "loading"
+      }
+    })
+
+    const switching = new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      { discardCreatedTabs: true }
+    )
+
+    await vi.advanceTimersByTimeAsync(49)
+    expect(tabs.discard).not.toHaveBeenCalled()
+
+    updateLiveTab(10, {
+      url: "https://target.example",
+      pendingUrl: undefined,
+      status: "loading"
+    })
+    await vi.advanceTimersByTimeAsync(1)
+    await switching
+    expect(tabs.discard).toHaveBeenCalledWith(10)
+  })
+
+  it("restores a target URL that Chrome loses while discarding", async () => {
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, getLiveTabs, updateLiveTab } = setupChrome([
+      tab(1, homeUrl, { pinned: true }),
+      tab(2, "https://source.example")
+    ])
+    tabs.discard.mockImplementationOnce(async (tabId) => {
+      updateLiveTab(tabId, {
+        url: "",
+        pendingUrl: undefined,
+        discarded: true,
+        status: undefined
+      })
+      return tabs.get(tabId)
+    })
+
+    await new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      { discardCreatedTabs: true }
+    )
+
+    expect(tabs.update).toHaveBeenCalledWith(10, {
+      url: "https://target.example"
+    })
+    expect(getLiveTabs().find((item) => item.id === 10)?.url).toBe(
+      "https://target.example"
+    )
+    expect(getLiveTabs().some((item) => item.id === 2)).toBe(false)
+  })
+
+  it("retries until Chrome confirms that a new target is discarded", async () => {
+    vi.useFakeTimers()
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs } = setupChrome([tab(1, homeUrl, { pinned: true })])
+    tabs.discard.mockResolvedValueOnce(undefined)
+
+    const switching = new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      { discardCreatedTabs: true }
+    )
+
+    await vi.advanceTimersByTimeAsync(74)
+    expect(tabs.discard).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(1)
+    await switching
+    expect(tabs.discard).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps the slot when discard returns stale success before Chrome confirms it", async () => {
+    vi.useFakeTimers()
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, updateLiveTab } = setupChrome([
+      tab(1, homeUrl, { pinned: true })
+    ])
+    const defaultCreate = tabs.create.getMockImplementation()!
+    tabs.create.mockImplementation(async (info) => {
+      const created = await defaultCreate(info)
+      updateLiveTab(created.id!, { status: "loading" })
+      return { ...created, status: "loading" }
+    })
+    tabs.discard.mockImplementation(async (tabId) => ({
+      ...(await tabs.get(tabId)),
+      discarded: true,
+      status: undefined
+    }))
+
+    const switching = new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://first.example" }, { url: "https://second.example" }],
+      { discardCreatedTabs: true, maxConcurrentTabLoads: 1 }
+    )
+
+    await vi.advanceTimersByTimeAsync(274)
+    expect(tabs.create).toHaveBeenCalledTimes(1)
+
+    updateLiveTab(10, { status: "complete" })
+    await vi.advanceTimersByTimeAsync(1)
+    expect(tabs.create).toHaveBeenCalledTimes(2)
+
+    updateLiveTab(11, { status: "complete" })
+    await vi.advanceTimersByTimeAsync(225)
+    await switching
+  })
+
+  it("keeps a restored target navigation in its preparation slot", async () => {
+    vi.useFakeTimers()
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, updateLiveTab } = setupChrome([
+      tab(1, homeUrl, { pinned: true })
+    ])
+    tabs.discard.mockImplementationOnce(async (tabId) => {
+      updateLiveTab(tabId, {
+        url: "",
+        pendingUrl: undefined,
+        discarded: true,
+        status: undefined
+      })
+      return tabs.get(tabId)
+    })
+    tabs.update.mockImplementationOnce(async (tabId, properties) => {
+      updateLiveTab(tabId, {
+        ...properties,
+        pendingUrl: String(properties.url),
+        discarded: false,
+        status: "loading"
+      })
+      return tabs.get(tabId)
+    })
+
+    const switching = new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://first.example" }, { url: "https://second.example" }],
+      { discardCreatedTabs: true, maxConcurrentTabLoads: 1 }
+    )
+
+    await vi.advanceTimersByTimeAsync(49)
+    expect(tabs.create).toHaveBeenCalledTimes(1)
+
+    updateLiveTab(10, { pendingUrl: undefined, status: "complete" })
+    await vi.advanceTimersByTimeAsync(1)
+    await switching
+    expect(tabs.create).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps a preparation slot until an undiscarded page finishes", async () => {
+    vi.useFakeTimers()
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, updateLiveTab } = setupChrome([
+      tab(1, homeUrl, { pinned: true })
+    ])
+    const defaultCreate = tabs.create.getMockImplementation()!
+    tabs.create.mockImplementation(async (info) => {
+      const created = await defaultCreate(info)
+      updateLiveTab(created.id!, { status: "loading" })
+      return { ...created, status: "loading" }
+    })
+    tabs.discard
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+
+    const switching = new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://first.example" }, { url: "https://second.example" }],
+      { discardCreatedTabs: true, maxConcurrentTabLoads: 1 }
+    )
+
+    await vi.advanceTimersByTimeAsync(274)
+    expect(tabs.create).toHaveBeenCalledTimes(1)
+
+    updateLiveTab(10, { status: "complete" })
+    await vi.advanceTimersByTimeAsync(1)
+    await switching
+
+    expect(tabs.create).toHaveBeenCalledTimes(2)
+    expect(tabs.discard).toHaveBeenCalledTimes(5)
+  })
+
+  it("re-pins an existing Home tab during a workspace switch", async () => {
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, getLiveTabs } = setupChrome([
+      tab(1, homeUrl, { pinned: false }),
+      tab(2, "https://source.example")
+    ])
+
+    await new TabOrchestrator().switchWorkspace(1, [], {})
+
+    expect(tabs.update).toHaveBeenCalledWith(1, { pinned: true })
+    expect(getLiveTabs().find((item) => item.id === 1)?.pinned).toBe(true)
+    expect(tabs.remove).toHaveBeenCalledWith([2])
+  })
+
   it("replaces an exact loading tab instead of reusing it", async () => {
     const homeUrl = "chrome-extension://id/popup.html?mode=home"
     const { tabs } = setupChrome([
@@ -208,75 +544,79 @@ describe("TabOrchestrator current-window switching", () => {
     expect(getLiveTabs().some((item) => item.id === 2)).toBe(false)
   })
 
-  it("starts missing targets in staggered groups of six", async () => {
-    vi.useFakeTimers()
+  it("fills the next preparation slot as soon as one target finishes", async () => {
     const homeUrl = "chrome-extension://id/popup.html?mode=home"
     const { tabs } = setupChrome([tab(1, homeUrl, { pinned: true })])
-    const onBatchPrepared = vi.fn()
-    const targets = Array.from({ length: 13 }, (_, index) => ({
+    const onPreparationProgress = vi.fn()
+    const targets = Array.from({ length: 5 }, (_, index) => ({
       url: `https://target-${index}.example`
     }))
+    const gates = targets.map(() => deferred())
+    const defaultCreate = tabs.create.getMockImplementation()!
+    tabs.create.mockImplementation(async (info) => {
+      const index = targets.findIndex((target) => target.url === info.url)
+      if (index >= 0) await gates[index].promise
+      return defaultCreate(info)
+    })
 
     const switching = new TabOrchestrator().switchWorkspace(1, targets, {
-      onBatchPrepared
+      maxConcurrentTabLoads: 3,
+      onPreparationProgress
     })
 
-    await vi.advanceTimersByTimeAsync(0)
-    expect(tabs.create).toHaveBeenCalledTimes(6)
-    expect(onBatchPrepared).toHaveBeenLastCalledWith({
-      preparedCount: 6,
-      batchSize: 6,
-      remainingCount: 7
+    await vi.waitFor(() => expect(tabs.create).toHaveBeenCalledTimes(3))
+
+    gates[1].resolve(undefined)
+    await vi.waitFor(() => expect(tabs.create).toHaveBeenCalledTimes(4))
+    expect(onPreparationProgress).toHaveBeenLastCalledWith({
+      preparedCount: 1,
+      justPreparedCount: 1,
+      remainingCount: 4
     })
 
-    await vi.advanceTimersByTimeAsync(599)
-    expect(tabs.create).toHaveBeenCalledTimes(6)
-
-    await vi.advanceTimersByTimeAsync(1)
-    expect(tabs.create).toHaveBeenCalledTimes(12)
-    expect(onBatchPrepared).toHaveBeenLastCalledWith({
-      preparedCount: 12,
-      batchSize: 6,
-      remainingCount: 1
-    })
-
-    await vi.advanceTimersByTimeAsync(599)
-    expect(tabs.create).toHaveBeenCalledTimes(12)
-
-    await vi.advanceTimersByTimeAsync(1)
+    gates[0].resolve(undefined)
+    await vi.waitFor(() => expect(tabs.create).toHaveBeenCalledTimes(5))
+    for (const gate of gates) gate.resolve(undefined)
     await switching
-    expect(tabs.create).toHaveBeenCalledTimes(13)
-    expect(onBatchPrepared).toHaveBeenLastCalledWith({
-      preparedCount: 13,
-      batchSize: 1,
+    expect(tabs.create).toHaveBeenCalledTimes(5)
+    expect(onPreparationProgress).toHaveBeenLastCalledWith({
+      preparedCount: 5,
+      justPreparedCount: 1,
       remainingCount: 0
     })
   })
 
-  it("cancels a pending batch gap without opening another group", async () => {
-    vi.useFakeTimers()
+  it("stops a rolling queue after abort without opening another target", async () => {
     const homeUrl = "chrome-extension://id/popup.html?mode=home"
     const { tabs, getLiveTabs } = setupChrome([
       tab(1, homeUrl, { pinned: true }),
       tab(2, "https://source.example")
     ])
     const controller = new AbortController()
-    const targets = Array.from({ length: 7 }, (_, index) => ({
+    const targets = Array.from({ length: 3 }, (_, index) => ({
       url: `https://target-${index}.example`
     }))
+    const gates = [deferred(), deferred()]
+    const defaultCreate = tabs.create.getMockImplementation()!
+    tabs.create.mockImplementation(async (info) => {
+      const index = targets.findIndex((target) => target.url === info.url)
+      if (index >= 0 && index < gates.length) await gates[index].promise
+      return defaultCreate(info)
+    })
 
     const switching = new TabOrchestrator().switchWorkspace(1, targets, {
+      maxConcurrentTabLoads: 2,
       signal: controller.signal
     })
 
-    await vi.advanceTimersByTimeAsync(0)
-    expect(tabs.create).toHaveBeenCalledTimes(6)
+    await vi.waitFor(() => expect(tabs.create).toHaveBeenCalledTimes(2))
 
     controller.abort()
+    for (const gate of gates) gate.resolve(undefined)
 
     await expect(switching).rejects.toThrow("workspace-switch-aborted")
-    expect(tabs.create).toHaveBeenCalledTimes(6)
-    expect(tabs.remove).toHaveBeenCalledWith([10, 11, 12, 13, 14, 15])
+    expect(tabs.create).toHaveBeenCalledTimes(2)
+    expect(tabs.remove).toHaveBeenCalledWith([10, 11])
     expect(getLiveTabs().some((item) => item.id === 2)).toBe(true)
   })
 
@@ -295,6 +635,39 @@ describe("TabOrchestrator current-window switching", () => {
     )
 
     expect(tabs.remove).toHaveBeenCalledWith([4])
+  })
+
+  it("cleans up corrupt blank tabs left by an older switch", async () => {
+    const homeUrl = "chrome-extension://id/popup.html?mode=home"
+    const { tabs, getLiveTabs } = setupChrome([
+      tab(1, homeUrl, { pinned: true }),
+      tab(2, "", {
+        active: true,
+        discarded: false,
+        status: "complete"
+      }),
+      tab(3, "chrome://newtab/", { discarded: true, status: undefined })
+    ])
+
+    await new TabOrchestrator().switchWorkspace(1, [], {})
+
+    expect(tabs.remove).toHaveBeenCalledWith([2])
+    expect(getLiveTabs().some((item) => item.id === 2)).toBe(false)
+    expect(getLiveTabs().some((item) => item.id === 3)).toBe(true)
+  })
+
+  it("cleans up a placeholder left by an interrupted load queue", async () => {
+    const { tabs, getLiveTabs } = setupChrome([
+      tab(1, "https://source.example"),
+      tab(2, WORKSPACE_TAB_LOAD_PLACEHOLDER_URL)
+    ])
+
+    await new TabOrchestrator().switchWorkspace(1, [], {})
+
+    expect(tabs.remove).toHaveBeenCalledWith([1, 2])
+    expect(getLiveTabs().map((item) => item.url)).toEqual([
+      expect.stringContaining("mode=home")
+    ])
   })
 
   it("prepares direct target and Home tabs before destructive commit", async () => {

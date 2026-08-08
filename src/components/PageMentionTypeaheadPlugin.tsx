@@ -168,7 +168,7 @@ export const PageMentionTypeaheadPlugin = memo(
                           }}
                         />
                       ) : (
-                        <span className="tab-icon fallback">
+                        <span className="tab-icon fallback" aria-hidden="true">
                           {option.hostLetter}
                         </span>
                       )}

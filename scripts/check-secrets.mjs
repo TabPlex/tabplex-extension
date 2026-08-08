@@ -25,6 +25,7 @@ const TEXT_EXTENSIONS = new Set([
 ])
 
 const stagedOnly = process.argv.includes("--staged")
+const SCANNER_PATH = "scripts/check-secrets.mjs"
 
 const listFiles = () => {
   const args = stagedOnly
@@ -37,6 +38,52 @@ const listFiles = () => {
 
 const patterns = [
   {
+    id: "private-key",
+    test(line) {
+      return /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/.test(line)
+        ? "检测到疑似私钥"
+        : null
+    }
+  },
+  {
+    id: "provider-token",
+    test(line) {
+      return /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|sk-(?:proj-)?[A-Za-z0-9_-]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}|(?:sk|rk)_live_[A-Za-z0-9]{16,}|npm_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}|(?:AKIA|ASIA)[A-Z0-9]{16})\b/.test(
+        line
+      )
+        ? "检测到疑似第三方服务令牌"
+        : null
+    }
+  },
+  {
+    id: "jwt-literal",
+    test(line) {
+      return /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/.test(
+        line
+      )
+        ? "检测到疑似 JWT 字面量"
+        : null
+    }
+  },
+  {
+    id: "credential-url",
+    test(line) {
+      return /https?:\/\/[^\s/:@]+:[^\s/@]+@/.test(line)
+        ? "检测到 URL 中的疑似明文凭据"
+        : null
+    }
+  },
+  {
+    id: "machine-path",
+    test(line) {
+      return /\/Users\/[A-Za-z0-9._-]+\/|[A-Za-z]:\\Users\\[^\\\s]+\\/.test(
+        line
+      )
+        ? "检测到本机用户绝对路径"
+        : null
+    }
+  },
+  {
     id: "supabase-url",
     test(line) {
       const match = line.match(/PLASMO_PUBLIC_SUPABASE_URL\s*=\s*(\S+)/)
@@ -44,7 +91,7 @@ const patterns = [
       const value = match[1]
       if (value === "https://your-project.supabase.co") return null
       if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(value)) return null
-      return `检测到疑似真实 Supabase URL: ${value}`
+      return "检测到疑似真实 Supabase URL"
     }
   },
   {
@@ -76,6 +123,8 @@ const patterns = [
 const violations = []
 
 for (const file of listFiles()) {
+  // The scanner contains the detection expressions themselves.
+  if (file === SCANNER_PATH) continue
   try {
     const stat = statSync(file)
     if (!stat.isFile() || stat.size > MAX_TEXT_BYTES) continue

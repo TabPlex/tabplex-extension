@@ -126,6 +126,7 @@ describe("backupRestoreModel", () => {
     expect(result.workspaceState).not.toHaveProperty("controller")
     expect(result.settings.agentControlEnabled).toBe(true)
     expect(result.settings.devMode).toBe(true)
+    expect(result.settings).not.toHaveProperty("workspaceTabLoadConcurrency")
     expect(result.settings).not.toHaveProperty("tabRestoreMode")
   })
 

@@ -220,7 +220,8 @@ const initialLocal = () => ({
   [STORAGE_KEYS.PENDING_ACTION]: { type: "create" },
   [STORAGE_KEYS.LOCAL_SETTINGS]: {
     devMode: true,
-    agentControlEnabled: true
+    agentControlEnabled: true,
+    workspaceTabLoadConcurrency: 6
   },
   [STORAGE_KEYS.TAGS]: [{ id: "legacy" }],
   displaySlots: [{ id: "legacy-display" }],
@@ -605,24 +606,34 @@ describe("backupRestoreService", () => {
     expect(sync.snapshot()).toEqual(beforeSync)
   })
 
-  it("uses projected post-write bytes for the quota gate", async () => {
-    const { local, sync, journal, dependencies } = setup()
+  it("ignores the nominal local quota granted away by unlimitedStorage", async () => {
+    const { local, dependencies } = setup()
     local.QUOTA_BYTES = 3_000
-    const beforeSetCalls = local.setCalls
-    const beforeRemoveCalls = local.removeCalls
     expect(await local.getBytesInUse(null)).toBeLessThan(
       local.QUOTA_BYTES * 0.9
     )
 
-    await expect(
-      restoreBackupImportPlan(
-        makePlan("replace", `https://example.com/${"x".repeat(5_000)}`),
-        dependencies
-      )
-    ).rejects.toThrow("backup-restore-quota-exceeded:local")
+    await restoreBackupImportPlan(
+      makePlan("replace", `https://example.com/${"x".repeat(5_000)}`),
+      dependencies
+    )
 
-    expect(local.setCalls).toBe(beforeSetCalls)
-    expect(local.removeCalls).toBe(beforeRemoveCalls)
+    expect(local.snapshot()[STORAGE_KEYS.WORKSPACES]).toEqual([
+      expect.objectContaining({ id: "imported" })
+    ])
+  })
+
+  it("keeps enforcing the independent browser-sync quota", async () => {
+    const { local, sync, journal, dependencies } = setup()
+    sync.QUOTA_BYTES = 100
+    const beforeLocal = local.snapshot()
+
+    await expect(
+      restoreBackupImportPlan(makePlan("replace"), dependencies)
+    ).rejects.toThrow("backup-restore-quota-exceeded:sync")
+
+    expect(local.snapshot()).toEqual(beforeLocal)
+    expect(local.setCalls).toBe(0)
     expect(sync.setCalls).toBe(0)
     expect(journal.current).toBeNull()
   })

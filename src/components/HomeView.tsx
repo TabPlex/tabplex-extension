@@ -33,8 +33,6 @@ const HomeView = () => {
     string | null
   >(null)
 
-  const localStorageBytes = data.localStorageBytes ?? 0
-
   const filteredWorkspaces = viewState.filteredWorkspaces || []
   const workspaceMoveTargets = useMemo(
     () =>
@@ -232,7 +230,7 @@ const HomeView = () => {
         <SettingsDialog
           open={viewState.showSettings}
           onOpenChange={actions.setShowSettings}
-          localStorageBytes={localStorageBytes}
+          storageUsage={data.storageUsage}
           flushPendingNotes={actions.flushPendingNotes}
         />
 

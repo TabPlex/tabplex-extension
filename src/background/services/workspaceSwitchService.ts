@@ -10,7 +10,8 @@ import type {
   TabSpec,
   Workspace,
   WorkspaceState,
-  WorkspaceSwitchSnapshot
+  WorkspaceSwitchSnapshot,
+  WorkspaceTabLoadConcurrency
 } from "~core/types"
 import { uuid } from "~core/utils"
 import {
@@ -25,6 +26,12 @@ import {
   resumeWorkspaceWindowAutosave,
   suppressWorkspaceWindowAutosave
 } from "./workspaceAutosave"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
+import {
+  cancelAllWorkspaceTabWarmups,
+  cancelWorkspaceTabWarmup,
+  startWorkspaceTabWarmup
+} from "./workspaceTabWarmup"
 import {
   assertNormalWindow,
   captureWorkspaceWindowTabs,
@@ -33,6 +40,7 @@ import {
 
 const SWITCH_ALARM_PREFIX = "tabplex-window-switch:"
 const SWITCH_TIMEOUT_MS = 60_000
+const WORKSPACE_TAB_LOAD_CONCURRENCY: WorkspaceTabLoadConcurrency = "all"
 
 type SwitchTransaction = {
   runId: string
@@ -85,6 +93,7 @@ const isVolatileWindowCaptureError = (error: unknown) => {
   const message = getErrorMessage(error)
   return (
     message === "workspace-window-tabs-busy" ||
+    message === "workspace-window-tabs-corrupt-blank" ||
     message === "workspace-autosave-tabs-changed-during-capture"
   )
 }
@@ -113,6 +122,22 @@ const cancelledSwitchResult = (intent: SwitchIntent): WorkspaceSwitchResult =>
         reason: "workspace-switch-aborted",
         error: "workspace-switch-aborted"
       }
+
+const cancelWindowWarmupSafely = async (windowId: number) => {
+  try {
+    await cancelWorkspaceTabWarmup(windowId)
+  } catch (error) {
+    console.warn("[TabPlex] 取消旧工作区后台预热失败", error)
+  }
+}
+
+const cancelAllWarmupsSafely = async () => {
+  try {
+    await cancelAllWorkspaceTabWarmups()
+  } catch (error) {
+    console.warn("[TabPlex] 取消全部工作区后台预热失败", error)
+  }
+}
 
 const updateSwitchState = async (
   current: NonNullable<WorkspaceState["switchState"]>,
@@ -175,6 +200,7 @@ const clearSwitchAlarm = async (runId: string) => {
 const recoverSwitchJournal = async (
   journal: NonNullable<WorkspaceState["switchState"]>
 ) => {
+  await cancelWindowWarmupSafely(journal.windowId)
   const sourceTabs = journal.sourceSnapshot?.tabs ?? []
   try {
     await assertNormalWindow(journal.windowId)
@@ -359,13 +385,19 @@ const runSwitch = async (
     } catch {}
 
     let preparedCount = 0
+    const warmupTargets = new Map<number, string>()
     const operation = (async (): Promise<WorkspaceSwitchResult> => {
       await tabOrchestrator.switchWorkspace(windowId, target.tabs, {
+        createdTabPlaceholderUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        maxConcurrentTabLoads: WORKSPACE_TAB_LOAD_CONCURRENCY,
         signal: intent.abortController.signal,
-        onTabPrepared: () => {
+        onTabPrepared: (tab, plannedUrl, kind) => {
           preparedCount += 1
+          if (kind === "created" && typeof tab.id === "number") {
+            warmupTargets.set(tab.id, plannedUrl)
+          }
         },
-        onBatchPrepared: async (progress) => {
+        onPreparationProgress: async (progress) => {
           throwIfSwitchIntentCancelled(intent)
           preparedCount = progress.preparedCount
           journal = await updateSwitchState(journal!, {
@@ -410,6 +442,11 @@ const runSwitch = async (
         const next = [...current]
         next[index] = { ...current[index], lastUsedAt: Date.now() }
         return next
+      })
+      await startWorkspaceTabWarmup({
+        windowId,
+        workspaceId: target.id,
+        targets: Array.from(warmupTargets, ([tabId, url]) => ({ tabId, url }))
       })
       await saveWorkspaceSwitchState(null)
       await clearSwitchAlarm(runId)
@@ -473,6 +510,14 @@ export const requestCurrentWindowWorkspaceSwitch = async (
       return cancelledSwitchResult(intent)
     }
 
+    await cancelWindowWarmupSafely(windowId)
+    if (
+      intent.abortController.signal.aborted ||
+      latestSwitchIntentByWindow.get(windowId) !== intent
+    ) {
+      return cancelledSwitchResult(intent)
+    }
+
     const recovered = await recoverPendingWorkspaceSwitch()
     if (!recovered) {
       return { success: false, reason: "recovery_required" }
@@ -500,6 +545,7 @@ export const requestCurrentWindowWorkspaceSwitch = async (
 }
 
 export const abortCurrentWorkspaceSwitch = async (reason = "aborted") => {
+  await cancelAllWarmupsSafely()
   const intents = new Set(latestSwitchIntentByWindow.values())
   if (currentSwitch) intents.add(currentSwitch.intent)
   if (intents.size) {
@@ -536,6 +582,7 @@ export const clearCurrentWindowWorkspaceBinding = async (
   preferredWindowId?: number
 ) => {
   const windowId = await resolveNormalWindowId(preferredWindowId)
+  await cancelWindowWarmupSafely(windowId)
   await flushWorkspaceWindowAutosave(windowId)
   await removeWorkspaceWindowBinding(windowId)
 }

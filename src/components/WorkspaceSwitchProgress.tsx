@@ -92,7 +92,7 @@ export const WorkspaceSwitchProgress = ({
               {primaryLabel}
             </span>
             {isSwitchingInProgress && counts.expected > 0 ? (
-              <span className="text-[10px] text-muted-foreground tabular-nums">
+              <span className="text-[11px] text-muted-foreground tabular-nums">
                 {counts.completed}/{counts.expected}
               </span>
             ) : null}
@@ -111,7 +111,7 @@ export const WorkspaceSwitchProgress = ({
         {isRecoveryFailed ? (
           <button
             type="button"
-            className="rounded-md border border-border/70 px-2 py-1 text-[10px] font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-md border border-border/70 px-2 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isDiscardingRecovery}
             onClick={() => setDiscardConfirmOpen(true)}>
             {isDiscardingRecovery

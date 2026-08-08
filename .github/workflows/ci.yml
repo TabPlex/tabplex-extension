@@ -35,8 +35,10 @@ jobs:
         run: pnpm format:check
       - name: Scan secrets
         run: pnpm scan:secrets
-      - name: Audit dependencies
-        run: pnpm audit --audit-level high
+      - name: Check third-party notices
+        run: pnpm licenses:check
+      - name: Audit production dependencies
+        run: pnpm audit:prod
       - name: Check types
         run: |
           pnpm typecheck

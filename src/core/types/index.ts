@@ -154,6 +154,20 @@ export const DEFAULT_WORKSPACE_EMOJIS = Object.freeze([
 
 export const FALLBACK_WORKSPACE_EMOJI = DEFAULT_WORKSPACE_EMOJIS[0]
 
+export const MIN_WORKSPACE_TAB_LOAD_CONCURRENCY = 1
+export const MAX_WORKSPACE_TAB_LOAD_CONCURRENCY = 10
+
+export type WorkspaceTabLoadConcurrency = number | "all"
+
+export const isWorkspaceTabLoadConcurrency = (
+  value: unknown
+): value is WorkspaceTabLoadConcurrency =>
+  value === "all" ||
+  (typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= MIN_WORKSPACE_TAB_LOAD_CONCURRENCY &&
+    value <= MAX_WORKSPACE_TAB_LOAD_CONCURRENCY)
+
 export type Settings = {
   devMode?: boolean
   agentControlEnabled?: boolean

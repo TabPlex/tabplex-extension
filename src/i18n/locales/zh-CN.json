@@ -1,7 +1,7 @@
 {
   "settings": {
     "title": "设置",
-    "description": "管理显示、控制、本地存储与恢复。",
+    "description": "管理显示、控制、本地存储与备份。",
     "sections": {
       "general": "常规",
       "appearance": "显示",
@@ -170,10 +170,11 @@
       }
     },
     "about": {
-      "desc": "工作区编组标签页，瞬间切换上下文，让研究与工作更专注。",
+      "desc": "工作区编组标签页，安全切换上下文，让研究与工作更专注。",
+      "github": "在 GitHub 查看 TabPlex",
       "feedback": {
         "title": "建议与反馈",
-        "desc": "欢迎告诉我们你遇到的问题或想要的功能。反馈故障时可附上日志，帮助更快定位原因。",
+        "desc": "TabPlex 是我们共同维护的开源项目。欢迎提交问题、分享想法或参与开发；反馈故障时可附上日志，方便共同排查。",
         "copy": "复制日志",
         "email": "邮件反馈",
         "copied": "日志已复制。",
@@ -208,9 +209,9 @@
   "storage": {
     "title": "存储",
     "localTitle": "本地存储",
-    "usage": "{{used}} / {{limit}}",
+    "usage": "已使用 {{used}}",
     "trashUsage": "回收站占用 {{used}}",
-    "localHint": "Chrome 限制 {{limit}}。",
+    "localHint": "仅存储在本机。",
     "reading": "正在读取…",
     "unavailable": "暂时无法读取存储用量",
     "backup": {
@@ -351,7 +352,7 @@
       "excludedBadge": "已排除记录",
       "lastAccessed": "上次访问 {{time}}",
       "selectionActions": {
-        "moveToWorkspace": "移动到其他工作区"
+        "moveToWorkspace": "选择到"
       },
       "empty": "这个工作区还没有页面，可以从浏览器拖拽标签页或点击上方按钮添加。"
     },
@@ -452,10 +453,10 @@
       "empty": "该时间点暂无页面。"
     },
     "diff": {
-      "added": "+{{count}}标签",
-      "removed": "-{{count}}标签",
+      "added": "新增 {{count}} 个标签页",
+      "removed": "移除 {{count}} 个标签页",
       "none": "无页面变动",
-      "titleAdded": "+",
+      "titleAdded": "已新增",
       "titleRemoved": "已移除",
       "empty": "暂无页面变动。"
     },

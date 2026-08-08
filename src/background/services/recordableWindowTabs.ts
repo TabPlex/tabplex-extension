@@ -1,6 +1,8 @@
 import type { TabSpec } from "~core/types"
 import { isSafeTabUrl } from "~core/utils"
 
+import { isWorkspaceTabLoadPlaceholderUrl } from "./workspaceTabLoadPlaceholder"
+
 export type RecordableWindowTabLike = {
   id?: number
   index: number
@@ -15,14 +17,14 @@ export type RecordableWindowTabLike = {
 type RecordableWindowTabBusyDiagnostic = {
   tabId: number | null
   index: number
-  reason: "loading" | "pending-navigation"
+  reason: "loading" | "pending-navigation" | "workspace-load-placeholder"
   urlSource: "url" | "pendingUrl"
 }
 
 type RecordableWindowTabUnverifiableDiagnostic = {
   tabId: number | null
   index: number
-  reason: "error-page-without-safe-pending-url"
+  reason: "blank-tab-without-safe-url" | "error-page-without-safe-pending-url"
 }
 
 export type RecordableWindowTabsProjection = {
@@ -96,6 +98,30 @@ export const projectRecordableWindowTabs = ({
     const resolved = resolveExactTabUrl(tab)
 
     if (resolved.url && isHomeUrl(resolved.url)) continue
+
+    if (
+      isWorkspaceTabLoadPlaceholderUrl(currentUrl) ||
+      isWorkspaceTabLoadPlaceholderUrl(pendingUrl)
+    ) {
+      busyDiagnostics.push({
+        tabId: tabIdOrNull(tab),
+        index: tab.index,
+        reason: "workspace-load-placeholder",
+        urlSource: isWorkspaceTabLoadPlaceholderUrl(pendingUrl)
+          ? "pendingUrl"
+          : "url"
+      })
+      continue
+    }
+
+    if (!currentUrl && !pendingUrl) {
+      unverifiableDiagnostics.push({
+        tabId: tabIdOrNull(tab),
+        index: tab.index,
+        reason: "blank-tab-without-safe-url"
+      })
+      continue
+    }
 
     if (
       (isErrorPageUrl(currentUrl) || isErrorPageUrl(pendingUrl)) &&

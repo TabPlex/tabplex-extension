@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "~components/ui/dialog"
+import type { LocalStorageUsageState } from "~features/settings/hooks/useLocalStorageUsage"
 import { requestSettingsDialogClose } from "~features/settings/logic/settingsDialogLifecycle"
 
 import { SettingsSurface, type SettingsSurfaceHandle } from "./SettingsSurface"
@@ -14,14 +15,14 @@ import { SettingsSurface, type SettingsSurfaceHandle } from "./SettingsSurface"
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  localStorageBytes: number
+  storageUsage: LocalStorageUsageState
   flushPendingNotes?: () => Promise<void>
 }
 
 export const SettingsDialog = ({
   open,
   onOpenChange,
-  localStorageBytes,
+  storageUsage,
   flushPendingNotes
 }: SettingsDialogProps) => {
   const { t } = useTranslation()
@@ -51,7 +52,7 @@ export const SettingsDialog = ({
         </DialogHeader>
         <SettingsSurface
           ref={surfaceRef}
-          storageUsage={{ status: "ready", bytes: localStorageBytes }}
+          storageUsage={storageUsage}
           flushPendingNotes={flushPendingNotes}
           sectionHeadingLevel="h3"
         />

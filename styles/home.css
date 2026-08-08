@@ -96,7 +96,7 @@
   }
 
   .home-switch-indicator-sub {
-    @apply text-[10px] leading-4 text-muted-foreground;
+    @apply text-xs leading-4 text-muted-foreground;
   }
 
   @media (max-width: 768px) {
@@ -223,7 +223,7 @@
   }
 
   .create-workspace-button {
-    @apply inline-flex h-9 items-center gap-1 rounded-xl border-0 bg-primary/10 px-3 text-[13px] font-medium text-primary-readable shadow-none transition-[background-color,color] duration-200 hover:bg-primary/15 hover:text-primary-readable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-55;
+    @apply inline-flex h-9 items-center gap-1 rounded-xl border-0 bg-primary/10 px-3 text-sm font-medium text-primary-readable shadow-none transition-[background-color,color] duration-200 hover:bg-primary/15 hover:text-primary-readable focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-55;
     white-space: nowrap;
     height: 2.25rem !important;
     width: 100% !important;
@@ -233,8 +233,8 @@
     background-color: hsl(var(--primary) / 0.1) !important;
     border-color: transparent !important;
     color: hsl(var(--primary-readable)) !important;
-    font-size: 0.8125rem !important;
-    line-height: 1.125rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
     box-shadow: none !important;
   }
 
@@ -410,7 +410,14 @@
   .sidebar-item:focus-visible,
   .tab-item:focus-visible {
     outline: 2px solid hsl(var(--ring));
+  }
+
+  .sidebar-item:focus-visible {
     outline-offset: 2px;
+  }
+
+  .tab-item:focus-visible {
+    outline-offset: -2px;
   }
 
   .sidebar-item.is-drop-target {
@@ -458,7 +465,7 @@
   }
 
   .sidebar-search-match {
-    @apply flex min-w-0 max-w-full items-center gap-1 truncate text-[11px] text-muted-foreground/90;
+    @apply flex min-w-0 max-w-full items-center gap-1 truncate text-xs text-muted-foreground/90;
   }
 
   .sidebar-info-separator {
@@ -719,12 +726,28 @@
     @apply text-primary-readable;
   }
 
+  .tab-selection-actions {
+    @apply flex min-w-0 items-center gap-1.5;
+  }
+
   .tab-destination-actions {
-    @apply flex items-center gap-1;
+    @apply flex min-w-0 items-center;
+  }
+
+  .tab-destination-trigger {
+    @apply h-8 gap-1 rounded-lg px-2 text-xs font-medium text-primary-readable hover:bg-primary/10 hover:text-primary-readable;
+  }
+
+  .tab-destination-arrow {
+    @apply text-sm leading-none;
+  }
+
+  .tab-selection-divider {
+    @apply mx-0.5 h-4 w-px shrink-0 bg-border;
   }
 
   .tab-selection-count {
-    @apply inline-flex h-[26px] items-center rounded-full bg-muted px-2 text-[11px] font-medium text-muted-foreground;
+    @apply inline-flex h-8 shrink-0 items-center rounded-full bg-muted px-2.5 text-xs font-medium text-muted-foreground;
   }
 
   /* Icon-only controls for the tab toolbar */
@@ -759,6 +782,11 @@
   .tab-icon-button.is-active:hover {
     background-color: transparent !important;
     color: hsl(var(--primary-readable)) !important;
+  }
+
+  .tab-selection-exit {
+    width: 2rem !important;
+    height: 2rem !important;
   }
 
   .tab-list {
@@ -1125,11 +1153,11 @@
   }
 
   .settings-appearance-block + .settings-appearance-block {
-    @apply border-t border-border/35 pt-3;
+    @apply pt-0;
   }
 
   .settings-section-title {
-    @apply text-[15px] font-semibold leading-tight tracking-tight text-foreground;
+    @apply text-base font-semibold leading-5 tracking-tight text-foreground;
   }
 
   .settings-appearance-label {
@@ -1154,11 +1182,108 @@
 
   .settings-language-trigger:focus-visible {
     box-shadow: none !important;
-    outline: none !important;
+    outline: 2px solid hsl(var(--ring)) !important;
+    outline-offset: 2px;
   }
 
   .settings-language-trigger > span {
     @apply w-full text-right;
+  }
+
+  .settings-accent-title-row {
+    @apply flex min-h-8 items-center justify-between gap-3;
+  }
+
+  .settings-accent-picker {
+    @apply inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-1 text-xs text-muted-foreground transition-colors;
+  }
+
+  .settings-accent-picker:hover {
+    @apply text-foreground;
+  }
+
+  .settings-accent-picker:focus-visible,
+  .settings-accent-value-input:focus-visible,
+  .settings-accent-control .react-colorful__interactive:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .settings-accent-picker-preview {
+    @apply h-8 w-8 shrink-0 rounded-lg border border-foreground/15 shadow-sm;
+  }
+
+  .settings-accent-popover {
+    @apply w-[236px] rounded-2xl border-border/60 bg-popover p-3 shadow-xl;
+  }
+
+  .settings-accent-control.react-colorful {
+    @apply w-full;
+    height: 156px;
+  }
+
+  .settings-accent-control .react-colorful__saturation {
+    @apply mb-2.5 rounded-xl border-0;
+  }
+
+  .settings-accent-control .react-colorful__hue {
+    @apply h-3.5 rounded-full;
+  }
+
+  .settings-accent-control .react-colorful__pointer {
+    @apply h-5 w-5 border-2 shadow-md;
+  }
+
+  .settings-accent-value-row {
+    @apply mt-3 flex h-9 items-center gap-2 rounded-xl border border-border bg-background px-2;
+  }
+
+  .settings-accent-value-label {
+    @apply text-[10px] font-semibold tracking-[0.08em] text-muted-foreground;
+  }
+
+  .settings-accent-value-input {
+    @apply min-w-0 flex-1 bg-transparent font-mono text-xs uppercase text-foreground outline-none;
+  }
+
+  .settings-accent-value-row .settings-accent-picker-preview {
+    @apply h-5 w-5 rounded-md;
+  }
+
+  .settings-accent-swatch:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .settings-accent-swatches {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .settings-accent-swatch {
+    @apply inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-foreground/15 shadow-sm;
+    transition:
+      box-shadow 140ms ease-out,
+      transform 140ms ease-out;
+  }
+
+  .settings-accent-swatch:hover {
+    transform: translateY(-1px) scale(1.04);
+  }
+
+  .settings-accent-swatch.is-active {
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--ring));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .settings-accent-swatch {
+      transition: none;
+    }
+
+    .settings-accent-swatch:hover {
+      transform: none;
+    }
   }
 
   @media (max-width: 768px) {
@@ -1187,11 +1312,11 @@
   }
 
   .settings-storage-content {
-    @apply flex flex-1 flex-col justify-between gap-3;
+    @apply flex flex-col gap-3;
   }
 
   .settings-storage-actions {
-    @apply border-t border-border/35 pt-1;
+    @apply pt-0;
   }
 
   .settings-backup-row {
@@ -1225,6 +1350,7 @@
 
   .settings-feedback-row {
     @apply items-start;
+    border-bottom: 0;
   }
 
   .settings-feedback-info {
@@ -1234,7 +1360,6 @@
 
   .settings-feedback-info .setting-desc {
     max-width: 18rem;
-    line-height: 1.45;
   }
 
   .settings-feedback-title {
@@ -1250,6 +1375,22 @@
     @apply h-8 px-0;
   }
 
+  .settings-about-footer {
+    @apply flex justify-end pt-1;
+  }
+
+  .settings-github-link {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors;
+  }
+
+  .settings-github-link:hover {
+    @apply bg-muted/50 text-foreground;
+  }
+
+  .settings-github-link:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
   @media (max-width: 640px) {
     .settings-feedback-row {
       @apply flex-col gap-2;
@@ -1261,6 +1402,10 @@
 
     .settings-feedback-actions {
       @apply ml-0 max-w-full justify-start;
+    }
+
+    .settings-about-footer {
+      @apply justify-start;
     }
 
     .settings-backup-row {
@@ -1282,7 +1427,7 @@
   }
 
   .setting-desc {
-    @apply text-xs text-muted-foreground;
+    @apply text-xs leading-[1.45] text-muted-foreground;
   }
 
   .settings-about-brand {
@@ -1342,11 +1487,11 @@
   }
 
   .settings-control .setting-list {
-    @apply flex-1 justify-between;
+    @apply gap-0;
   }
 
   .settings-control .setting-row {
-    @apply py-2.5;
+    @apply border-b-0 py-2.5;
   }
 
   .settings-control-row {
@@ -1368,11 +1513,10 @@
 
   .settings-agent-description {
     max-width: 18rem;
-    line-height: 1.45;
   }
 
   .settings-agent-status {
-    @apply inline-flex items-center gap-1.5 text-[11px] text-muted-foreground;
+    @apply inline-flex items-center gap-1.5 text-xs text-muted-foreground;
   }
 
   .settings-agent-status::before {
@@ -1426,7 +1570,7 @@
   }
 
   .setting-hint.muted {
-    @apply text-[11px] text-muted-foreground/80;
+    @apply text-xs text-muted-foreground/80;
   }
 
   /* Shortcut cards */
@@ -1572,7 +1716,7 @@
   }
 
   .trash-pill {
-    @apply rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground;
+    @apply rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground;
   }
 
   .trash-name {

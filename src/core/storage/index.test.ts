@@ -256,6 +256,24 @@ describe("core/storage", () => {
     ])
   })
 
+  it("does not enforce chrome.storage.local's nominal quota before saving", async () => {
+    const local = globalThis.chrome.storage.local as any
+    local.QUOTA_BYTES = 1
+    local.getBytesInUse.mockResolvedValue(1)
+
+    await saveWorkspaces([
+      {
+        id: "w1",
+        name: "Workspace",
+        createdAt: 1,
+        tabs: [{ url: "https://example.com" }]
+      } as Workspace
+    ])
+
+    expect(local.getBytesInUse).not.toHaveBeenCalled()
+    expect(local.data[STORAGE_KEYS.WORKSPACES]).toHaveLength(1)
+  })
+
   it("normalizes session bindings and ignores invalid entries", async () => {
     const session = globalThis.chrome.storage.session as any
     session.data[STORAGE_KEYS.WINDOW_BINDINGS] = {
@@ -355,7 +373,8 @@ describe("core/storage", () => {
     }
     storage.local.data[STORAGE_KEYS.LOCAL_SETTINGS] = {
       agentControlEnabled: false,
-      devMode: true
+      devMode: true,
+      workspaceTabLoadConcurrency: "all"
     }
 
     const result = await loadSettings()
@@ -365,6 +384,7 @@ describe("core/storage", () => {
       agentControlEnabled: false,
       devMode: true
     })
+    expect(result).not.toHaveProperty("workspaceTabLoadConcurrency")
     expect(result).not.toHaveProperty("singleClickSwitch")
     expect(result).not.toHaveProperty("ensureHomePinned")
     expect(result).not.toHaveProperty("tabRestoreMode")
@@ -375,6 +395,7 @@ describe("core/storage", () => {
       ...DEFAULT_SETTINGS,
       devMode: true,
       agentControlEnabled: true,
+      workspaceTabLoadConcurrency: 4,
       replacePinned: true,
       tabRestoreMode: "soft",
       switchMode: "replaceCurrentWindow",
@@ -390,6 +411,9 @@ describe("core/storage", () => {
     })
     expect(result.portableSettings).not.toHaveProperty("devMode")
     expect(result.portableSettings).not.toHaveProperty("agentControlEnabled")
+    expect(result.portableSettings).not.toHaveProperty(
+      "workspaceTabLoadConcurrency"
+    )
     expect(result.portableSettings).not.toHaveProperty("replacePinned")
     expect(result.portableSettings).not.toHaveProperty("tabRestoreMode")
     expect(result.portableSettings).not.toHaveProperty("switchMode")

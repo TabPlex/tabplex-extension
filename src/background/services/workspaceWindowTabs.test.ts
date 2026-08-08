@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from "vitest"
 
-import { resolveNormalWindowId } from "./workspaceWindowTabs"
+import {
+  captureWorkspaceWindowTabs,
+  resolveNormalWindowId
+} from "./workspaceWindowTabs"
 
 const browserWindow = (
   id: number,
@@ -65,5 +68,60 @@ describe("resolveNormalWindowId", () => {
     getWindow.mockResolvedValue(browserWindow(8))
 
     await expect(resolveNormalWindowId()).resolves.toBe(8)
+  })
+})
+
+describe("captureWorkspaceWindowTabs", () => {
+  it("refuses to replace saved tabs when Chrome reports a blank target tab", async () => {
+    ;(globalThis as any).chrome = {
+      tabs: {
+        query: vi.fn().mockResolvedValue([
+          {
+            id: 31,
+            index: 1,
+            windowId: 7,
+            url: "",
+            pendingUrl: undefined,
+            pinned: false,
+            status: "loading"
+          }
+        ])
+      },
+      runtime: {
+        getURL: vi.fn((path: string) => `chrome-extension://tabplex/${path}`)
+      }
+    }
+
+    await expect(
+      captureWorkspaceWindowTabs({
+        windowId: 7,
+        previousTabs: [{ url: "https://saved.example" }]
+      })
+    ).rejects.toThrow("workspace-window-tabs-corrupt-blank")
+  })
+
+  it("keeps other unverifiable pages on the fail-closed path", async () => {
+    ;(globalThis as any).chrome = {
+      tabs: {
+        query: vi.fn().mockResolvedValue([
+          {
+            id: 32,
+            index: 1,
+            windowId: 7,
+            url: "chrome-error://chromewebdata/",
+            pendingUrl: undefined,
+            pinned: false,
+            status: "complete"
+          }
+        ])
+      },
+      runtime: {
+        getURL: vi.fn((path: string) => `chrome-extension://tabplex/${path}`)
+      }
+    }
+
+    await expect(captureWorkspaceWindowTabs({ windowId: 7 })).rejects.toThrow(
+      "workspace-window-tabs-unverifiable"
+    )
   })
 })
