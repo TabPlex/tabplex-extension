@@ -26,7 +26,7 @@ import {
   resumeWorkspaceWindowAutosave,
   suppressWorkspaceWindowAutosave
 } from "./workspaceAutosave"
-import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
+import { getWorkspaceTabLoadPlaceholderUrl } from "./workspaceTabLoadPlaceholder"
 import {
   cancelAllWorkspaceTabWarmups,
   cancelWorkspaceTabWarmup,
@@ -388,7 +388,7 @@ const runSwitch = async (
     const warmupTargets = new Map<number, string>()
     const operation = (async (): Promise<WorkspaceSwitchResult> => {
       await tabOrchestrator.switchWorkspace(windowId, target.tabs, {
-        createdTabPlaceholderUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        createdTabPlaceholderUrl: getWorkspaceTabLoadPlaceholderUrl(),
         maxConcurrentTabLoads: WORKSPACE_TAB_LOAD_CONCURRENCY,
         signal: intent.abortController.signal,
         onTabPrepared: (tab, plannedUrl, kind) => {

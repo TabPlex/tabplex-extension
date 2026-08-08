@@ -8,6 +8,10 @@ const __dirname = dirname(__filename)
 export default defineConfig({
   resolve: {
     alias: {
+      "url:~assets/workspace-loading.html": resolve(
+        __dirname,
+        "src/test-utils/workspaceLoadingAssetUrl.ts"
+      ),
       "~": resolve(__dirname, "."),
       "~lib": resolve(__dirname, "lib"),
       "~src": resolve(__dirname, "src"),

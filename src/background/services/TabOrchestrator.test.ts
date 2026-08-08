@@ -4,7 +4,9 @@ import type { TabSpec } from "~core/types"
 
 import * as closingTabs from "./closingTabs"
 import { TabOrchestrator } from "./TabOrchestrator"
-import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH } from "./workspaceTabLoadPlaceholder"
+
+const WORKSPACE_TAB_LOAD_PLACEHOLDER_URL = `chrome-extension://id/${WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH}`
 
 vi.mock("./closingTabs", () => ({
   markTabsClosing: vi.fn(),
@@ -54,7 +56,11 @@ const setupChrome = (initialTabs: chrome.tabs.Tab[]) => {
         windowId: info.windowId ?? 1,
         pinned: info.pinned ?? false,
         active: info.active ?? false,
-        index: info.index ?? liveTabs.length
+        index: info.index ?? liveTabs.length,
+        status:
+          info.url === WORKSPACE_TAB_LOAD_PLACEHOLDER_URL
+            ? "loading"
+            : undefined
       })
       liveTabs.push(created)
       return { ...created }
@@ -205,8 +211,7 @@ describe("TabOrchestrator current-window switching", () => {
     )
   })
 
-  it("waits for a placeholder URL to commit before exposing it to warmup", async () => {
-    vi.useFakeTimers()
+  it("exposes an owned pending placeholder without waiting for it to commit", async () => {
     const { tabs, updateLiveTab } = setupChrome([
       tab(1, "https://source.example")
     ])
@@ -227,7 +232,7 @@ describe("TabOrchestrator current-window switching", () => {
       }
     })
 
-    const switching = new TabOrchestrator().switchWorkspace(
+    await new TabOrchestrator().switchWorkspace(
       1,
       [{ url: "https://target.example" }],
       {
@@ -236,21 +241,53 @@ describe("TabOrchestrator current-window switching", () => {
       }
     )
 
-    await vi.advanceTimersByTimeAsync(49)
-    expect(onTabPrepared).not.toHaveBeenCalled()
+    expect(onTabPrepared).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 10,
+        url: "",
+        pendingUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        status: "loading"
+      }),
+      "https://target.example",
+      "created"
+    )
+  })
 
-    updateLiveTab(10, {
-      url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
-      pendingUrl: undefined,
-      status: "loading"
+  it("exposes a blank created shell immediately to the retryable warmup queue", async () => {
+    const { tabs, updateLiveTab } = setupChrome([
+      tab(1, "https://source.example")
+    ])
+    const defaultCreate = tabs.create.getMockImplementation()!
+    const onTabPrepared = vi.fn()
+    tabs.create.mockImplementationOnce(async (info) => {
+      const created = await defaultCreate(info)
+      updateLiveTab(created.id!, {
+        url: "",
+        pendingUrl: undefined,
+        status: "loading"
+      })
+      return {
+        ...created,
+        url: "",
+        pendingUrl: undefined,
+        status: "loading"
+      }
     })
-    await vi.advanceTimersByTimeAsync(1)
-    await switching
+
+    await new TabOrchestrator().switchWorkspace(
+      1,
+      [{ url: "https://target.example" }],
+      {
+        createdTabPlaceholderUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        onTabPrepared
+      }
+    )
 
     expect(onTabPrepared).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 10,
-        url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        url: "",
+        pendingUrl: undefined,
         status: "loading"
       }),
       "https://target.example",

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH } from "./workspaceTabLoadPlaceholder"
 import {
   cancelWorkspaceTabWarmup,
   handleWorkspaceTabWarmupActivated,
@@ -10,6 +10,8 @@ import {
   resumeWorkspaceTabWarmups,
   startWorkspaceTabWarmup
 } from "./workspaceTabWarmup"
+
+const WORKSPACE_TAB_LOAD_PLACEHOLDER_URL = `chrome-extension://tabplex-test/${WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH}`
 
 const state = vi.hoisted(() => ({
   binding: {
@@ -129,6 +131,9 @@ const setupChrome = (initialTabs: chrome.tabs.Tab[]) => {
         })
       }
     },
+    runtime: {
+      getURL: vi.fn((path: string) => `chrome-extension://tabplex-test/${path}`)
+    },
     tabs
   }
 
@@ -208,12 +213,7 @@ describe("workspaceTabWarmup", () => {
       createPlaceholderTab(1),
       createPlaceholderTab(2)
     ])
-    tabs.update.mockImplementationOnce(async (tabId, properties) => ({
-      ...(await tabs.get(tabId)),
-      ...properties,
-      discarded: false,
-      status: "loading"
-    }))
+    tabs.update.mockImplementationOnce(async (tabId) => tabs.get(tabId))
 
     const starting = startWarmup([1, 2])
 
@@ -231,6 +231,71 @@ describe("workspaceTabWarmup", () => {
     await vi.advanceTimersByTimeAsync(1)
     await starting
     expect(tabs.update).toHaveBeenCalledTimes(2)
+  })
+
+  it("keeps a Chrome-normalized pending target in flight", async () => {
+    const { tabs, getJob, updateTab } = setupChrome([createPlaceholderTab(1)])
+    tabs.update.mockImplementationOnce(async (tabId) =>
+      updateTab(tabId, {
+        url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        pendingUrl: `${targetUrl(1)}/`,
+        discarded: false,
+        status: "loading"
+      })
+    )
+
+    await startWarmup([1])
+    expect(tabs.update).toHaveBeenCalledTimes(1)
+    expect(getJob()).toMatchObject({
+      pendingTabIds: [],
+      inflightTabs: [{ tabId: 1 }]
+    })
+
+    const loading = updateTab(1, {
+      url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+      pendingUrl: `${targetUrl(1)}/`,
+      status: "loading"
+    })
+    handleWorkspaceTabWarmupUpdated(1, { status: "loading" }, loading)
+    await resumeWorkspaceTabWarmups()
+
+    expect(tabs.update).toHaveBeenCalledTimes(1)
+    expect(getJob()).toMatchObject({
+      pendingTabIds: [],
+      inflightTabs: [{ tabId: 1 }]
+    })
+  })
+
+  it("keeps a blank created shell and starts its target navigation", async () => {
+    const { tabs, getJob } = setupChrome([
+      createPlaceholderTab(1, {
+        url: "",
+        pendingUrl: undefined,
+        status: "loading"
+      })
+    ])
+
+    await startWarmup([1])
+
+    expect(tabs.update).toHaveBeenCalledWith(1, { url: targetUrl(1) })
+    expect(getJob()).toMatchObject({
+      pendingTabIds: [],
+      inflightTabs: [{ tabId: 1 }]
+    })
+  })
+
+  it("keeps a new target when tabs.query temporarily omits it", async () => {
+    const { tabs, getJob } = setupChrome([createPlaceholderTab(1)])
+    tabs.query.mockResolvedValueOnce([])
+
+    await startWarmup([1])
+
+    expect(tabs.get).toHaveBeenCalledWith(1)
+    expect(tabs.update).toHaveBeenCalledWith(1, { url: targetUrl(1) })
+    expect(getJob()).toMatchObject({
+      pendingTabIds: [],
+      inflightTabs: [{ tabId: 1 }]
+    })
   })
 
   it("cleans up timed-out accounting without stopping slow pages", async () => {
@@ -308,6 +373,38 @@ describe("workspaceTabWarmup", () => {
     expect(tabs.update).toHaveBeenNthCalledWith(1, 1, {
       url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL
     })
+    expect(tabs.update).toHaveBeenNthCalledWith(2, 1, { url: targetUrl(1) })
+  })
+
+  it("waits for the local placeholder URL to commit before navigating a legacy target", async () => {
+    const { tabs, updateTab } = setupChrome([
+      createPlaceholderTab(1, {
+        url: targetUrl(1),
+        discarded: true,
+        status: undefined
+      })
+    ])
+    tabs.update.mockImplementationOnce(async (tabId) =>
+      updateTab(tabId, {
+        url: targetUrl(1),
+        pendingUrl: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+        discarded: false,
+        status: "loading"
+      })
+    )
+
+    const starting = startWarmup([1])
+    await vi.advanceTimersByTimeAsync(49)
+    expect(tabs.update).toHaveBeenCalledTimes(1)
+
+    updateTab(1, {
+      url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL,
+      pendingUrl: undefined,
+      status: "loading"
+    })
+    await vi.advanceTimersByTimeAsync(1)
+    await starting
+
     expect(tabs.update).toHaveBeenNthCalledWith(2, 1, { url: targetUrl(1) })
   })
 

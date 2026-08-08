@@ -4,6 +4,8 @@ import { isTabClosing } from "./closingTabs"
 import { getHomeBaseUrl, isHomeUrl } from "./homeTabService"
 import { capturePortableTabGroups } from "./portableTabGroups"
 import { projectRecordableWindowTabs } from "./recordableWindowTabs"
+import { loadWorkspaceTabWarmupTargetIds } from "./workspaceTabWarmup"
+import { loadWorkspaceWindowTabsById } from "./workspaceWindowTabQuery"
 
 type CaptureWindowTabsOptions = {
   windowId: number
@@ -18,9 +20,10 @@ export const captureWorkspaceWindowTabs = async ({
   windowId,
   previousTabs = []
 }: CaptureWindowTabsOptions) => {
-  const tabs = (await chrome.tabs.query({ windowId })).filter(
-    (tab) => typeof tab.id === "number" && !isTabClosing(tab.id)
-  )
+  const warmupTargetIds = await loadWorkspaceTabWarmupTargetIds(windowId)
+  const tabs = Array.from(
+    (await loadWorkspaceWindowTabsById(windowId, warmupTargetIds)).values()
+  ).filter((tab) => typeof tab.id === "number" && !isTabClosing(tab.id))
   const projection = projectRecordableWindowTabs({
     tabs,
     isHomeUrl: (url) => isHomeUrl(url, getHomeBaseUrl())

@@ -131,11 +131,13 @@ const removeVerifiedOwnedArtifacts = async (artifacts: OwnedTabArtifact[]) => {
     try {
       const current = await chrome.tabs.get(artifact.tabId)
       const currentUrl = getExactTabUrl(getTabUrlForMatch(current))
-      const isBlankDiscardedArtifact =
-        !current.active && current.discarded && !currentUrl
+      const isBlankCreatedArtifact =
+        !current.active &&
+        !getExactTabUrl(current.url) &&
+        !getExactTabUrl(current.pendingUrl)
       const stillOwned =
         current.windowId === artifact.windowId &&
-        (isBlankDiscardedArtifact ||
+        (isBlankCreatedArtifact ||
           (!!currentUrl &&
             artifact.expectedUrls.some(
               (expectedUrl) => getExactTabUrl(expectedUrl) === currentUrl
@@ -289,35 +291,6 @@ const waitForReadyTargetUrl = async (
   return latestTab
 }
 
-const waitForCommittedCreatedUrl = async (
-  tab: chrome.tabs.Tab,
-  expectedUrl: string,
-  signal?: AbortSignal
-) => {
-  if (typeof tab.id !== "number") {
-    throw new Error("workspace-target-tab-id-missing")
-  }
-
-  const deadline = Date.now() + TARGET_URL_READY_TIMEOUT_MS
-  let latestTab = tab
-  while (
-    getExactTabUrl(latestTab.url) !== expectedUrl ||
-    !!getExactTabUrl(latestTab.pendingUrl)
-  ) {
-    throwIfAborted(signal)
-    const remainingMs = deadline - Date.now()
-    if (remainingMs <= 0) {
-      throw new Error("workspace-created-tab-not-committed")
-    }
-    await waitForDelay(Math.min(TARGET_URL_READY_POLL_MS, remainingMs), signal)
-    latestTab = await chrome.tabs.get(tab.id)
-  }
-  // 批量创建 about:blank 占位页时，Chrome 可能已经提交 url、清空
-  // pendingUrl，却仍暂时把 status 保持为 loading。此时 tabs.update 已可安全
-  // 接管导航；继续等待 complete 会让后创建的标签被节流到超时。
-  return latestTab
-}
-
 const hasCommittedTargetUrl = (tab: chrome.tabs.Tab) =>
   !getExactTabUrl(tab.pendingUrl) && isSafeTabUrl(getExactTabUrl(tab.url))
 
@@ -431,18 +404,15 @@ const createTargetTabs = async (
       expectedUrls: Array.from(new Set([spec.url, createUrl]))
     }
     prepared.createdTabArtifacts.push(artifact)
-    const committedCreatedTab = options.createdTabPlaceholderUrl
-      ? await waitForCommittedCreatedUrl(tab, createUrl, options.signal)
-      : tab
     prepared.preparedTargets.push({
       tabId: tab.id,
       spec,
       order,
-      originalGroupId: committedCreatedTab.groupId
+      originalGroupId: tab.groupId
     })
     const readyTab = options.discardCreatedTabs
-      ? await waitForReadyTargetUrl(committedCreatedTab, options.signal)
-      : committedCreatedTab
+      ? await waitForReadyTargetUrl(tab, options.signal)
+      : tab
     const discardCandidate = options.discardCreatedTabs
       ? await waitForCommittedTargetUrl(readyTab, options.signal)
       : readyTab

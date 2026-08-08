@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   projectRecordableWindowTabs,
   type RecordableWindowTabLike
 } from "./recordableWindowTabs"
-import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH } from "./workspaceTabLoadPlaceholder"
+
+const WORKSPACE_TAB_LOAD_PLACEHOLDER_URL = `chrome-extension://tabplex/${WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH}`
 
 const tab = (
   index: number,
@@ -25,6 +27,14 @@ const isHomeUrl = (url: string) =>
   url === "chrome-extension://tabplex/popup.html?mode=home"
 
 describe("projectRecordableWindowTabs", () => {
+  beforeEach(() => {
+    ;(globalThis as any).chrome = {
+      runtime: {
+        getURL: vi.fn((path: string) => `chrome-extension://tabplex/${path}`)
+      }
+    }
+  })
+
   it("sorts strictly by index and excludes protected tabs", () => {
     const result = projectRecordableWindowTabs({
       tabs: [

@@ -5,6 +5,12 @@ import {
   resolveNormalWindowId
 } from "./workspaceWindowTabs"
 
+const warmup = vi.hoisted(() => ({ targetIds: [] as number[] }))
+
+vi.mock("./workspaceTabWarmup", () => ({
+  loadWorkspaceTabWarmupTargetIds: vi.fn(async () => [...warmup.targetIds])
+}))
+
 const browserWindow = (
   id: number,
   type: NonNullable<chrome.windows.Window["type"]> = "normal"
@@ -29,6 +35,7 @@ let getLastFocusedWindow: Mock<GetLastFocusedWindow>
 
 describe("resolveNormalWindowId", () => {
   beforeEach(() => {
+    warmup.targetIds = []
     getWindow = vi.fn<GetWindow>()
     getLastFocusedWindow = vi.fn<GetLastFocusedWindow>()
     ;(globalThis as any).chrome = {
@@ -72,6 +79,10 @@ describe("resolveNormalWindowId", () => {
 })
 
 describe("captureWorkspaceWindowTabs", () => {
+  beforeEach(() => {
+    warmup.targetIds = []
+  })
+
   it("refuses to replace saved tabs when Chrome reports a blank target tab", async () => {
     ;(globalThis as any).chrome = {
       tabs: {
@@ -123,5 +134,33 @@ describe("captureWorkspaceWindowTabs", () => {
     await expect(captureWorkspaceWindowTabs({ windowId: 7 })).rejects.toThrow(
       "workspace-window-tabs-unverifiable"
     )
+  })
+
+  it("refuses an empty save when query omits a warmup placeholder", async () => {
+    warmup.targetIds = [41]
+    ;(globalThis as any).chrome = {
+      tabs: {
+        query: vi.fn().mockResolvedValue([]),
+        get: vi.fn().mockResolvedValue({
+          id: 41,
+          index: 1,
+          windowId: 7,
+          url: "chrome-extension://tabplex/workspace-loading.html",
+          pendingUrl: undefined,
+          pinned: false,
+          status: "complete"
+        })
+      },
+      runtime: {
+        getURL: vi.fn((path: string) => `chrome-extension://tabplex/${path}`)
+      }
+    }
+
+    await expect(
+      captureWorkspaceWindowTabs({
+        windowId: 7,
+        previousTabs: [{ url: "https://saved.example" }]
+      })
+    ).rejects.toThrow("workspace-window-tabs-busy")
   })
 })

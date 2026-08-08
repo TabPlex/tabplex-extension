@@ -13,11 +13,13 @@ import {
   resumeWorkspaceWindowAutosave
 } from "./workspaceAutosave"
 import { requestCurrentWindowWorkspaceSwitch } from "./workspaceSwitchService"
-import { WORKSPACE_TAB_LOAD_PLACEHOLDER_URL } from "./workspaceTabLoadPlaceholder"
+import { WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH } from "./workspaceTabLoadPlaceholder"
 import {
   captureWorkspaceWindowTabs,
   resolveNormalWindowId
 } from "./workspaceWindowTabs"
+
+const WORKSPACE_TAB_LOAD_PLACEHOLDER_URL = `chrome-extension://tabplex-test/${WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH}`
 
 const state = vi.hoisted(() => ({
   bindings: {} as WorkspaceWindowBindingMap,
@@ -131,6 +133,11 @@ describe("workspaceSwitchService", () => {
       alarms: {
         clear: vi.fn().mockResolvedValue(true),
         create: vi.fn()
+      },
+      runtime: {
+        getURL: vi.fn(
+          (path: string) => `chrome-extension://tabplex-test/${path}`
+        )
       }
     }
     state.journal = null

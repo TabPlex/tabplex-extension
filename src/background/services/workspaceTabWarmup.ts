@@ -1,11 +1,17 @@
 import { getWorkspaceWindowBinding } from "~core/storage"
-import { isSafeTabUrl, resolveTabUrl, uuid } from "~core/utils"
+import {
+  isSafeTabUrl,
+  resolveTabUrl,
+  urlsEqualNormalized,
+  uuid
+} from "~core/utils"
 import { logWarn } from "~lib/logger"
 
 import {
-  isWorkspaceTabLoadPlaceholderUrl,
-  WORKSPACE_TAB_LOAD_PLACEHOLDER_URL
+  getWorkspaceTabLoadPlaceholderUrl,
+  isWorkspaceTabLoadPlaceholderUrl
 } from "./workspaceTabLoadPlaceholder"
+import { loadWorkspaceWindowTabsById } from "./workspaceWindowTabQuery"
 
 const WARMUP_STORAGE_KEY = "workspaceTabWarmupJobs"
 const WARMUP_ALARM_PREFIX = "tabplex-workspace-warmup:"
@@ -145,6 +151,13 @@ const normalizeJob = (value: unknown): WorkspaceTabWarmupJob | null => {
   }
 }
 
+const getWarmupJobTabIds = (job: WorkspaceTabWarmupJob) =>
+  normalizeTabIds([
+    ...Object.keys(job.targetUrls).map(Number),
+    ...job.pendingTabIds,
+    ...job.inflightTabs.map(({ tabId }) => tabId)
+  ])
+
 const readWarmupJobs = async (): Promise<WorkspaceTabWarmupJobMap> => {
   const result = await chrome.storage.session.get(WARMUP_STORAGE_KEY)
   const raw = result[WARMUP_STORAGE_KEY]
@@ -192,21 +205,19 @@ const removeWarmupJob = async (
   await clearWarmupAlarm(windowId)
 }
 
-const loadWindowTabs = async (windowId: number) => {
-  const tabs = await chrome.tabs.query({ windowId })
-  return new Map(
-    tabs.flatMap((tab) =>
-      typeof tab.id === "number" ? ([[tab.id, tab]] as const) : []
-    )
-  )
-}
-
 const tabHasPlaceholderUrl = (tab: chrome.tabs.Tab) =>
   isWorkspaceTabLoadPlaceholderUrl(tab.pendingUrl) ||
   isWorkspaceTabLoadPlaceholderUrl(tab.url)
 
+const tabHasNoNavigationUrl = (tab: chrome.tabs.Tab) =>
+  !exactUrl(tab.url) && !exactUrl(tab.pendingUrl)
+
+const tabHasCommittedPlaceholderUrl = (tab: chrome.tabs.Tab) =>
+  isWorkspaceTabLoadPlaceholderUrl(tab.url) && !exactUrl(tab.pendingUrl)
+
 const tabHasExpectedUrl = (tab: chrome.tabs.Tab, expectedUrl: string) =>
-  exactUrl(tab.pendingUrl) === expectedUrl || exactUrl(tab.url) === expectedUrl
+  urlsEqualNormalized(tab.pendingUrl, expectedUrl) ||
+  urlsEqualNormalized(tab.url, expectedUrl)
 
 const getTargetUrl = (
   job: WorkspaceTabWarmupJob,
@@ -233,9 +244,30 @@ const reconcileInflightTabs = (
     const tab = tabsById.get(inflight.tabId)
     if (!tab || tab.windowId !== job.windowId) continue
 
+    if (tab.discarded) {
+      prependPendingTab(job, inflight.tabId)
+      continue
+    }
+    if (tabHasNoNavigationUrl(tab)) {
+      prependPendingTab(job, inflight.tabId)
+      continue
+    }
+
+    const targetUrl = getTargetUrl(job, inflight.tabId, tab)
+    if (targetUrl && tabHasExpectedUrl(tab, targetUrl)) {
+      // Real Chrome keeps the committed extension placeholder in `url` while
+      // exposing the requested page in `pendingUrl`. That is already a valid
+      // target navigation and must not be mistaken for an idle placeholder.
+      if (tab.active || tab.status === "complete") continue
+      if (now - inflight.startedAt < LOAD_TIMEOUT_MS) {
+        next.push(inflight)
+      }
+      continue
+    }
+
     // If MV3 suspended after persisting ownership but before navigation, the
     // placeholder is still pending and must return to the front of the queue.
-    if (tabHasPlaceholderUrl(tab) || tab.discarded) {
+    if (tabHasPlaceholderUrl(tab)) {
       prependPendingTab(job, inflight.tabId)
       continue
     }
@@ -269,13 +301,22 @@ const reconcilePendingTabs = (
 
     const targetUrl = getTargetUrl(job, tabId, tab)
     if (!targetUrl) continue
-    if (tabHasPlaceholderUrl(tab) || tab.discarded) {
+    if (tab.discarded) {
+      pending.push(tabId)
+      continue
+    }
+    if (tabHasNoNavigationUrl(tab)) {
       pending.push(tabId)
       continue
     }
     if (tab.status === "loading" && tabHasExpectedUrl(tab, targetUrl)) {
       job.inflightTabs.push({ tabId, startedAt: now })
       inflightIds.add(tabId)
+      continue
+    }
+    if (tabHasExpectedUrl(tab, targetUrl)) continue
+    if (tabHasPlaceholderUrl(tab)) {
+      pending.push(tabId)
     }
     // Complete targets and tabs taken over by the user are already outside
     // the pending queue. Neither should be navigated again.
@@ -310,22 +351,24 @@ const waitForTabState = async (
 }
 
 const navigateToPlaceholder = async (tabId: number) => {
-  await chrome.tabs.update(tabId, { url: WORKSPACE_TAB_LOAD_PLACEHOLDER_URL })
+  await chrome.tabs.update(tabId, {
+    url: getWorkspaceTabLoadPlaceholderUrl()
+  })
   await waitForTabState(
     tabId,
-    (tab) => !tab.discarded && tabHasPlaceholderUrl(tab),
+    (tab) => !tab.discarded && tabHasCommittedPlaceholderUrl(tab),
     "workspace-tab-placeholder-not-confirmed"
   )
 }
 
 const navigateToTarget = async (tabId: number, targetUrl: string) => {
-  await chrome.tabs.update(tabId, { url: targetUrl })
+  const updated = await chrome.tabs.update(tabId, { url: targetUrl })
+  if (updated && !updated.discarded && tabHasExpectedUrl(updated, targetUrl)) {
+    return
+  }
   await waitForTabState(
     tabId,
-    (tab) =>
-      !tab.discarded &&
-      !tabHasPlaceholderUrl(tab) &&
-      (tabHasExpectedUrl(tab, targetUrl) || tab.status === "complete"),
+    (tab) => !tab.discarded && tabHasExpectedUrl(tab, targetUrl),
     "workspace-tab-load-not-confirmed"
   )
 }
@@ -335,6 +378,8 @@ const startTabLoad = async (job: WorkspaceTabWarmupJob, tabId: number) => {
   const targetUrl = getTargetUrl(job, tabId, tab)
   if (!targetUrl) throw new Error("workspace-tab-target-url-missing")
 
+  if (!tab.discarded && tabHasExpectedUrl(tab, targetUrl)) return
+
   if (!tabHasPlaceholderUrl(tab) && tab.discarded) {
     // A persisted job from an older build can point at a discarded target URL.
     // Navigate through a distinct lightweight page so Chrome cannot treat the
@@ -343,7 +388,7 @@ const startTabLoad = async (job: WorkspaceTabWarmupJob, tabId: number) => {
   }
 
   if (!tabHasPlaceholderUrl(tab) && !tab.discarded) {
-    if (tab.status === "loading" || tab.status === "complete") return
+    if (exactUrl(resolveTabUrl(tab))) return
   }
 
   await navigateToTarget(tabId, targetUrl)
@@ -415,7 +460,10 @@ const processWarmupJob = async (windowId: number, expectedRunId?: string) => {
 
   let tabsById: Map<number, chrome.tabs.Tab>
   try {
-    tabsById = await loadWindowTabs(windowId)
+    tabsById = await loadWorkspaceWindowTabsById(
+      windowId,
+      getWarmupJobTabIds(job)
+    )
   } catch {
     await removeWarmupJob(jobs, windowId)
     return
@@ -476,6 +524,12 @@ export const startWorkspaceTabWarmup = (options: {
 
 export const cancelWorkspaceTabWarmup = (windowId: number) =>
   enqueueWarmup(() => cancelWarmupJob(windowId))
+
+export const loadWorkspaceTabWarmupTargetIds = async (windowId: number) => {
+  const jobs = await readWarmupJobs()
+  const job = jobs[String(windowId)]
+  return job ? getWarmupJobTabIds(job) : []
+}
 
 export const cancelAllWorkspaceTabWarmups = () =>
   enqueueWarmup(async () => {
