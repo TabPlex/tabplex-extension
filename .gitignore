@@ -59,10 +59,6 @@ dist/
 docs/*
 !docs/testing-standards.md
 
-# Local cloud-only Supabase assets
-supabase/cloud/
-supabase/.temp/
-
 # Local audit artifacts
 AUDIT_REPORT.md
 CRITICAL_ISSUES.md

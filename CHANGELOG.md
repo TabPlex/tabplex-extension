@@ -1,10 +1,8 @@
 # Changelog
 
-This project follows a release-note format based on user-visible changes. The
-current `1.0.0` tree is a release candidate; dated release entries are added when
-a version is actually published.
+This project follows a release-note format based on user-visible changes.
 
-## Unreleased
+## 1.0.0 - 2026-08-09
 
 ### Added
 
@@ -23,7 +21,5 @@ a version is actually published.
 
 ### Security
 
-- Retired legacy caller-supplied-email entitlement SQL and removed anonymous
-  execution grants.
 - Added strict internal-message validation and scoped Agent capabilities, replay
   protection, rate limiting, audit records, and immediate revocation.

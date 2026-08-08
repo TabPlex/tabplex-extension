@@ -3,8 +3,7 @@
 Last updated: 2026-08-09
 
 TabPlex is a local-first Chrome and Edge extension. This policy describes the
-current open-source `1.0.0` runtime. Roadmap documents and inactive SQL files do
-not describe an enabled cloud service.
+current open-source `1.0.0` runtime.
 
 ## Data TabPlex handles
 

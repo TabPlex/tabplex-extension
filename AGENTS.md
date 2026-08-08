@@ -16,7 +16,7 @@
 ## 开发验证模式（团队约定）
 
 - 沟通语言为中文（需求、说明、变更记录优先中文）。
-- 需要让他人直接加载 **prod** 进行验证时：先停止 `pnpm dev`，确保 `.env` 含 Supabase 变量，再运行 `pnpm build`，加载 `build/chrome-mv3-prod`。
+- 需要让他人直接加载 **prod** 进行验证时：先停止 `pnpm dev`，再运行 `pnpm build`，加载 `build/chrome-mv3-prod`；只有需要覆盖官网地址时才配置 `PLASMO_PUBLIC_WEB_APP_URL`。
 - 此模式下，`package.json` 的 `description` 必须写成“本次测试范围”的中文说明（短句），而不是正式产品文案。
 
 ## Coding Style & Naming Conventions

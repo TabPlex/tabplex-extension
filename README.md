@@ -1,47 +1,67 @@
-# TabPlex Extension
+<p align="center">
+  <img src="./assets/icon.png" width="104" height="104" alt="TabPlex icon" />
+</p>
 
-[![CI (main)](https://github.com/TabPlex/tabplex-extension/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TabPlex/tabplex-extension/actions/workflows/ci.yml)
+<h1 align="center">TabPlex</h1>
 
-TabPlex is a local-first tab workspace extension for saving, recovering, and
-switching task context in the current Chrome or Edge window (Manifest V3).
+<p align="center">
+  Local-first, recoverable task workspaces for Chrome and Edge.
+</p>
 
-## Current Features
+<p align="center">
+  <a href="https://www.tabplex.com/">Website</a> ·
+  <strong>English</strong> ·
+  <a href="./README.zh-CN.md">简体中文</a> ·
+  <a href="./PRIVACY.md">Privacy</a>
+</p>
 
-- Save task workspaces with tab-group metadata, notes, linked resources, and a
-  recoverable timeline.
-- Switch the current normal browser window with a persistent recovery journal
-  and rollback-safe tab restoration.
-- Search across workspace names, tab titles and URLs, linked resources, and
-  notes.
-- Export and restore portable v3 backup files with bounded validation, a
-  SHA-256 corruption check, and transactional rollback.
-- Use browser-level shortcuts and an optional, off-by-default Native Messaging
-  Agent control channel for local workflows.
+<p align="center">
+  <a href="https://github.com/TabPlex/tabplex-extension/actions/workflows/ci.yml">
+    <img src="https://github.com/TabPlex/tabplex-extension/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI status" />
+  </a>
+</p>
 
-## Privacy & Storage
+<p align="center">
+  <img src="./assets/readme/workspace-switch-demo.gif" width="1024" alt="TabPlex workspace switching demo" />
+</p>
 
-Workspace content, notes, resources, recovery state, and the device-local Agent
-enable switch are stored in `chrome.storage.local`. Per-window bindings are
-ephemeral and live in `chrome.storage.session`; small portable preferences use
-`chrome.storage.sync`. The current extension has no TabPlex account, analytics
-client, remote workspace API, or background upload path. Backup files are
-created locally and are only written when the user explicitly exports one.
-Backup files use an 8 MiB safety limit. A matching checksum detects accidental
-or malicious file changes but does not authenticate who created the file.
+<p align="center">
+  <sub>Real extension demo: switch the current window between complete task contexts.</sub>
+</p>
 
-The required `storage` permission provides TabPlex-owned extension storage.
-The required `unlimitedStorage` permission removes Chrome's fixed
-`chrome.storage.local` quota for the existing workspace, timeline, note, and
-linked-resource features. It does not grant access to website content, enable
-network uploads, or provide cloud sync. TabPlex reports the current local usage;
-actual capacity remains bounded by available device storage. The separate
-8 MiB backup-file limit protects the MV3 worker while parsing untrusted JSON and
-is not a limit on the local workspace database.
+TabPlex saves a browser task—tabs, tab groups, notes, linked resources, and
+recovery history—as one workspace. Switching targets only the current normal
+browser window, so other windows stay untouched.
 
-See the [privacy policy](PRIVACY.md) for the complete data and permission
-boundary, including the optional local Agent component.
+## Features
 
-## Development
+- Save complete task workspaces while preserving portable tab-group metadata.
+- Switch the current window with a persistent recovery journal and rollback-safe
+  restoration.
+- Search workspace names, tab titles and URLs, linked resources, and notes.
+- Recover earlier states through Timeline, Trash, and validated local backups.
+- Export and restore portable v3 backups with bounded parsing, a SHA-256
+  corruption check, preview, and transactional rollback.
+- Use browser shortcuts and an optional, off-by-default local Agent control
+  channel.
+
+## Privacy and storage
+
+The current extension has no TabPlex account, analytics client, remote workspace
+API, cloud-sync runtime, or background upload path.
+
+Workspace content and recovery data stay in `chrome.storage.local`. Temporary
+window bindings use `chrome.storage.session`, while a small set of portable
+preferences uses browser-managed `chrome.storage.sync`. Backups are written only
+when the user explicitly exports one.
+
+The `unlimitedStorage` permission removes Chrome's fixed local extension-storage
+quota; it does not grant access to website content or enable network uploads.
+See the [privacy policy](./PRIVACY.md) for the complete boundary.
+
+## Run locally
+
+Use Node 24 and the pnpm version declared in `package.json`.
 
 ```bash
 corepack enable
@@ -49,31 +69,19 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Use Node 24 and the pnpm version declared in `package.json`. Load the dev build
-in Chrome from `build/chrome-mv3-dev`.
+Open `chrome://extensions`, enable **Developer mode**, choose **Load unpacked**,
+and select `build/chrome-mv3-dev`.
 
-For an optimized local build, run `pnpm build:chrome`, open
-`chrome://extensions`, enable Developer mode, choose **Load unpacked**, and
-select `build/chrome-mv3-prod`.
-
-## Build & Package
+For optimized builds:
 
 ```bash
 pnpm build:chrome
 pnpm build:edge
-pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
-pnpm package:chrome
-pnpm package:edge
-pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
 ```
 
-Artifacts:
+Load `build/chrome-mv3-prod` in Chrome or `build/edge-mv3-prod` in Edge.
 
-- Chrome bundle / package: `build/chrome-mv3-prod` and
-  `build/chrome-mv3-prod.zip`
-- Edge bundle / package: `build/edge-mv3-prod` and `build/edge-mv3-prod.zip`
-
-Before a release, run the same gates as CI:
+## Verify and package
 
 ```bash
 pnpm format:check
@@ -88,30 +96,26 @@ pnpm build:chrome
 pnpm build:edge
 pnpm smoke:extension-pages -- build/chrome-mv3-prod build/edge-mv3-prod
 pnpm verify:artifacts -- build/chrome-mv3-prod build/edge-mv3-prod
+pnpm package:chrome
+pnpm package:edge
 ```
 
-Tests intentionally focus on stable behavior: storage and backup contracts,
-message handlers, queues, switching state machines, and high-cost interactions.
-See [the testing standards](docs/testing-standards.md) before adding a test.
+Tests protect stable behavior such as storage and backup contracts, message
+handlers, queues, switching state machines, and high-cost interactions. Read the
+[testing standards](./docs/testing-standards.md) before adding tests.
 
-## Optional Local Agent Control
+## Optional local Agent control
 
-Agent control is disabled by default. It uses Chrome Native Messaging plus a
-user-only Unix socket; it does not expose MCP, HTTP, WebSocket, or a TCP port.
-On macOS, install the local host once for the currently loaded extension ID:
+Agent control is disabled by default. It uses Chrome Native Messaging and a
+user-only Unix socket; it does not expose an HTTP, WebSocket, MCP, or TCP port.
+Install the local host for the currently loaded extension ID:
 
 ```bash
 pnpm agent:install -- --extension-id=<chrome-extension-id>
 ```
 
-For Edge, append `--browser=edge` and use the Edge extension ID.
-
-Then open **Settings → Control** and enable **Agent control**. The switch opens
-or closes the native connection immediately. The settings row can also copy a
-self-contained instruction for Codex or another local Agent. A project-local
-skill is available at `.agents/skills/tabplex-agent-control/SKILL.md`.
-
-Use the CLI from this checkout:
+For Edge, append `--browser=edge`. Then open **Settings → Control** and enable
+**Agent control**.
 
 ```bash
 pnpm agent -- help
@@ -119,47 +123,24 @@ pnpm agent -- getState
 pnpm agent -- switchWorkspace '{"workspaceId":"<id>"}'
 ```
 
-The native host manifest accepts only the installed extension ID. Runtime files
-are created under the current user's TabPlex application-support directory with
-owner-only permissions. Window-bound commands default to the current normal
-Chrome window and can also receive an explicit `--window-id`.
-
-The validated command set covers workspace read/create/switch/rename/style/trash,
-tab read/open/capture/move/remove/replace, notes, timeline snapshots, portable
-settings, Home, Settings, and the Chrome shortcut settings page. Permanent
-delete and empty-trash commands require `confirm: true`. Backup import/restore,
-developer switches, and assigning browser shortcuts remain human-confirmed UI
-flows rather than unattended Agent commands.
-
-## Cloud Sync (roadmap)
-
-The current extension has no Supabase client, login flow, entitlement consumer,
-or cloud-sync runtime. Local workspaces do not require an account. The SQL under
-`supabase/` is inactive design history and must not be presented as a feature
-that can be enabled with build-time environment variables.
-
-The former pre-login email eligibility RPC is retired. If OTP and cloud sync are
-implemented later, entitlement lookup must be authenticated and self-only: read
-the verified email from the Supabase JWT, accept no caller-supplied email, and
-never grant the entitlement RPC to `anon`. See `supabase/README.md` for the
-database cleanup and verification procedure.
+The host accepts only the extension ID used during installation. Permanent
+delete commands require explicit confirmation; backup restore and browser
+shortcut assignment remain human-confirmed UI flows.
 
 ## Shortcuts
-
-TabPlex uses browser-level extension commands, so shortcuts also work on
-regular Chrome pages. Customize them in `chrome://extensions/shortcuts`.
 
 - Open Home / Switcher: `Alt+H`
 - Quick Create Workspace: `Alt+N`
 - Previous Workspace: `Alt+Up`
 - Next Workspace: `Alt+Down`
 
-## Notes
+Customize shortcuts at `chrome://extensions/shortcuts`.
 
-- Built with [Plasmo](https://docs.plasmo.com/).
-- Contributions are described in [CONTRIBUTING.md](CONTRIBUTING.md) and follow
-  the [Code of Conduct](CODE_OF_CONDUCT.md).
-- Report vulnerabilities through the private process in
-  [SECURITY.md](SECURITY.md), not a public issue.
-- TabPlex is licensed under [AGPL-3.0-only](LICENSE); bundled dependency notices
-  are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+## Contributing and license
+
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) and the
+[Code of Conduct](./CODE_OF_CONDUCT.md) before contributing. Report security
+issues through the private process in [SECURITY.md](./SECURITY.md).
+
+TabPlex is licensed under [AGPL-3.0-only](./LICENSE). Bundled dependency notices
+are listed in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
