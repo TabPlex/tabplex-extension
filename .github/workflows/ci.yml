@@ -1,0 +1,62 @@
+name: "CI"
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Quality, tests, and browser builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ff378ebe6b225b0680b81c1ad4498ae0d1d3a5e3 # v6.0.10
+        with:
+          run_install: false
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check formatting
+        run: pnpm format:check
+      - name: Scan secrets
+        run: pnpm scan:secrets
+      - name: Check third-party notices
+        run: pnpm licenses:check
+      - name: Audit production dependencies
+        run: pnpm audit:prod
+      - name: Check types
+        run: |
+          pnpm typecheck
+          pnpm typecheck:unused
+          pnpm typecheck:strictnull:core
+      - name: Run tests
+        run: pnpm test
+      - name: Build Chrome production extension
+        run: pnpm build:chrome
+      - name: Build Edge production extension
+        run: pnpm build:edge
+      - name: Smoke production extension pages
+        run: >-
+          pnpm smoke:extension-pages --
+          build/chrome-mv3-prod
+          build/edge-mv3-prod
+      - name: Verify production artifacts
+        run: >-
+          pnpm verify:artifacts --
+          build/chrome-mv3-prod
+          build/edge-mv3-prod

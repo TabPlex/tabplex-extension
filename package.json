@@ -1,0 +1,166 @@
+{
+  "name": "tabplex",
+  "private": true,
+  "displayName": "TabPlex",
+  "version": "1.0.0",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@10.33.2",
+  "description": "本次测试范围：工作区滚动并发加载、切换可靠性、页面定位与键盘交互",
+  "author": "jellow <dvdx@foxmail.com>",
+  "homepage": "https://github.com/TabPlex/tabplex-extension#readme",
+  "bugs": {
+    "url": "https://github.com/TabPlex/tabplex-extension/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TabPlex/tabplex-extension.git"
+  },
+  "keywords": [
+    "chrome-extension",
+    "mv3",
+    "plasmo",
+    "tab-management",
+    "workspace"
+  ],
+  "scripts": {
+    "dev": "plasmo dev",
+    "agent": "node ./scripts/native-host/tabplex-agent-cli.mjs",
+    "agent:install": "node ./scripts/install-native-host.mjs",
+    "build": "pnpm build:chrome",
+    "build:chrome": "plasmo build --target=chrome-mv3 && node ./scripts/copy-release-legal.mjs build/chrome-mv3-prod",
+    "build:edge": "plasmo build --target=edge-mv3 && node ./scripts/copy-release-legal.mjs build/edge-mv3-prod",
+    "package": "pnpm package:chrome",
+    "package:chrome": "node ./scripts/copy-release-legal.mjs build/chrome-mv3-prod && plasmo package --target=chrome-mv3",
+    "package:edge": "node ./scripts/copy-release-legal.mjs build/edge-mv3-prod && plasmo package --target=edge-mv3",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "typecheck:unused": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
+    "typecheck:strictnull:core": "tsc -p ./tsconfig.strictnull.core.json --noEmit",
+    "scan:secrets": "node ./scripts/check-secrets.mjs",
+    "scan:secrets:staged": "node ./scripts/check-secrets.mjs --staged",
+    "audit:prod": "pnpm audit --prod --audit-level high",
+    "licenses:generate": "node ./scripts/generate-third-party-notices.mjs",
+    "licenses:check": "node ./scripts/generate-third-party-notices.mjs --check",
+    "smoke:extension-pages": "node ./scripts/smoke-extension-pages.mjs",
+    "verify:artifacts": "node ./scripts/verify-release-artifacts.mjs",
+    "verify:release-artifacts": "node ./scripts/verify-release-artifacts.mjs --release",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "pnpm": {
+    "overrides": {
+      "@babel/core@<7.29.6": "7.29.6",
+      "brace-expansion@>=4.0.0 <5.0.9": "5.0.9",
+      "content-security-policy-parser@<0.6.0": "0.6.0",
+      "glob@>=10.2.0 <10.5.0": "10.5.0",
+      "immutable@>=5.0.0 <5.1.8": "5.1.8",
+      "js-yaml": "4.3.1",
+      "minimatch@>=9.0.0 <9.0.7": "9.0.7",
+      "msgpackr@<1.10.1": "1.11.5",
+      "picomatch@<2.3.2": "2.3.2",
+      "picomatch@>=4.0.0 <4.0.4": "4.0.4",
+      "rollup@>=3.0.0 <3.30.0": "3.30.0",
+      "rollup@>=4.0.0 <4.59.0": "4.59.0",
+      "sharp@<0.35.0": "0.35.0",
+      "svgo@>=2.1.0 <2.8.3": "2.8.3",
+      "vite@>=7.0.0 <7.3.5": "7.3.5",
+      "yaml@<2.0.0": "1.10.3",
+      "yaml@>=2.0.0 <2.8.3": "2.8.3"
+    }
+  },
+  "dependencies": {
+    "@emoji-mart/data": "^1.2.1",
+    "@lexical/code": "^0.49.0",
+    "@lexical/link": "^0.49.0",
+    "@lexical/list": "^0.49.0",
+    "@lexical/markdown": "^0.49.0",
+    "@lexical/react": "^0.49.0",
+    "@lexical/rich-text": "^0.49.0",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
+    "@radix-ui/react-popover": "^1.1.23",
+    "@radix-ui/react-progress": "^1.1.16",
+    "@radix-ui/react-select": "^2.3.7",
+    "@radix-ui/react-separator": "^1.1.15",
+    "@radix-ui/react-slot": "^1.3.3",
+    "@radix-ui/react-switch": "^1.3.7",
+    "@radix-ui/react-tooltip": "^1.2.16",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "i18next": "^26.3.6",
+    "lexical": "^0.49.0",
+    "motion": "12.29.0",
+    "react": "18.3.1",
+    "react-colorful": "5.8.0",
+    "react-dom": "18.3.1",
+    "react-i18next": "^17.0.11",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "4.7.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.3",
+    "@types/chrome": "0.2.5",
+    "@types/node": "^24.13.3",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitest/coverage-v8": "4.1.10",
+    "autoprefixer": "^10.5.4",
+    "jsdom": "30.0.1",
+    "plasmo": "0.90.5",
+    "postcss": "^8.5.18",
+    "prettier": "3.9.6",
+    "tailwindcss": "^3.4.19",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  },
+  "manifest": {
+    "description": "$TABPLEX_RELEASE_DESCRIPTION",
+    "homepage_url": "https://github.com/TabPlex/tabplex-extension",
+    "permissions": [
+      "alarms",
+      "nativeMessaging",
+      "tabs",
+      "tabGroups",
+      "storage",
+      "unlimitedStorage",
+      "windows"
+    ],
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none';"
+    },
+    "commands": {
+      "open-quick-switcher": {
+        "suggested_key": {
+          "default": "Alt+H",
+          "mac": "Alt+H"
+        },
+        "description": "打开主页/切换器"
+      },
+      "open-quick-create": {
+        "suggested_key": {
+          "default": "Alt+N",
+          "mac": "Alt+N"
+        },
+        "description": "快速新建工作区"
+      },
+      "switch-workspace-prev": {
+        "suggested_key": {
+          "default": "Alt+Up",
+          "mac": "Alt+Up"
+        },
+        "description": "切换到上一个工作区"
+      },
+      "switch-workspace-next": {
+        "suggested_key": {
+          "default": "Alt+Down",
+          "mac": "Alt+Down"
+        },
+        "description": "切换到下一个工作区"
+      }
+    }
+  }
+}

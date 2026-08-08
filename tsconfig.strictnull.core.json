@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strictNullChecks": true
+  },
+  "include": [
+    "src/core/**/*.ts",
+    "src/background/**/*.ts",
+    "lib/storageQueues.ts"
+  ],
+  "exclude": ["node_modules", "build", "**/*.test.ts", "**/*.test.tsx"]
+}

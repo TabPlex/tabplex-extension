@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+
+    --primary: 24 95% 53%;
+    --primary-readable: 24 95% 35%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 24 95% 53%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222 20% 10.4%;
+    --foreground: 210 33% 96%;
+
+    --card: 222 22% 15%;
+    --card-foreground: 210 34% 96%;
+
+    --popover: 222 20% 14%;
+    --popover-foreground: 210 34% 96%;
+
+    --primary: 24 95% 56%;
+    --primary-readable: 24 95% 72%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 224 24% 19%;
+    --secondary-foreground: 210 32% 94%;
+
+    --muted: 224 18% 18%;
+    --muted-foreground: 217 18% 68%;
+
+    --accent: 224 22% 22%;
+    --accent-foreground: 210 32% 96%;
+
+    --destructive: 0 70% 36%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 225 24% 24%;
+    --input: 225 24% 24%;
+    --ring: 24 95% 58%;
+  }
+
+  *,
+  ::before,
+  ::after {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-sm text-foreground antialiased;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.animate-in, .animate-out, .animate-spin) {
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  body {
+    background: Canvas !important;
+  }
+}

@@ -1,0 +1,331 @@
+@tailwind components;
+
+@layer components {
+  .timeline-page {
+    @apply mx-auto flex w-full max-w-[1320px] flex-col gap-4 overflow-hidden rounded-lg border border-border bg-card p-6 text-foreground shadow-sm;
+    container-type: inline-size;
+  }
+
+  .timeline-popup {
+    /* Give the standalone popup enough width for two columns. */
+    @apply min-h-0 h-[520px] w-[760px] max-w-full p-5;
+  }
+
+  .timeline-embedded {
+    @apply flex h-full min-h-0 flex-col gap-4 text-foreground;
+    width: 100%;
+    container-type: inline-size;
+  }
+
+  .timeline-header {
+    @apply flex flex-col gap-3 md:flex-row md:items-center md:justify-between;
+  }
+
+  .timeline-brand {
+    @apply flex items-center gap-3;
+  }
+
+  .timeline-dot {
+    @apply h-3 w-3 rounded-full bg-primary;
+    box-shadow: 0 0 12px hsl(var(--ring) / 0.6);
+  }
+
+  .timeline-title {
+    @apply text-xl font-semibold;
+  }
+
+  .timeline-meta {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .timeline-header-actions {
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+
+  .timeline-body {
+    @apply flex flex-1 min-h-0 min-w-0 flex-col gap-4;
+  }
+
+  .timeline-body-scroll {
+    @apply flex h-full flex-1 min-h-0 min-w-0 flex-col overflow-hidden;
+  }
+
+  .timeline-main {
+    @apply flex flex-1 min-h-0 min-w-0 flex-col gap-4 overflow-hidden;
+  }
+
+  .timeline-page .timeline-main {
+    @apply rounded-lg border border-border bg-background p-5 shadow-sm;
+  }
+
+  .timeline-embedded .timeline-main {
+    @apply p-0;
+  }
+
+  .timeline-empty {
+    @apply flex flex-1 items-center justify-center rounded-lg border border-dashed border-border px-6 py-16 text-sm text-muted-foreground;
+  }
+
+  .timeline-content {
+    @apply flex flex-1 min-h-0 min-w-0 flex-col gap-3.5 overflow-hidden w-full;
+  }
+
+  .timeline-main-header {
+    @apply flex items-center;
+  }
+
+  .timeline-main-info {
+    @apply flex min-w-0 items-center gap-3;
+  }
+
+  .timeline-main-copy {
+    @apply min-w-0;
+  }
+
+  .timeline-sidebar-color {
+    @apply flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-lg shadow-sm;
+    box-shadow: 0 10px 24px -22px hsl(var(--foreground) / 0.32);
+  }
+
+  .timeline-sidebar-color.is-transparent {
+    background-color: transparent !important;
+  }
+
+  .timeline-main-name {
+    @apply text-lg font-semibold text-foreground;
+  }
+
+  .timeline-main-meta {
+    @apply flex min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-muted-foreground;
+  }
+
+  .timeline-main-meta > span:not(.timeline-main-recent) {
+    @apply shrink-0;
+  }
+
+  .timeline-main-recent {
+    @apply min-w-0 truncate text-xs text-muted-foreground;
+  }
+
+  .timeline-panels {
+    @apply grid min-h-0 min-w-0 flex-1 gap-4;
+    grid-template-columns: minmax(250px, 296px) minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .timeline-history {
+    @apply flex h-full min-h-0 min-w-0 flex-col;
+  }
+
+  .timeline-history-scroll {
+    @apply flex flex-1 min-h-0 min-w-0 flex-col overflow-y-auto pr-1;
+    overscroll-behavior-y: contain;
+  }
+
+  .timeline-history-list {
+    @apply flex flex-col gap-2.5;
+  }
+
+  .timeline-history-list > li {
+    @apply w-full;
+  }
+
+  .timeline-history-item {
+    @apply w-full cursor-pointer rounded-xl border-0 bg-card px-4 py-2.5 text-left text-sm shadow-none transition-colors hover:bg-primary/10 disabled:cursor-wait disabled:opacity-70;
+  }
+
+  .timeline-history-item.is-active {
+    @apply bg-primary/15 shadow-none;
+  }
+
+  .timeline-history-item:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .timeline-history-heading {
+    @apply grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground;
+  }
+
+  .timeline-history-when {
+    @apply row-span-2 flex min-w-0 flex-col gap-0.5;
+  }
+
+  .timeline-history-relative {
+    @apply shrink-0 font-medium leading-5 text-foreground;
+  }
+
+  .timeline-history-date {
+    @apply min-w-0 truncate text-xs leading-4 text-muted-foreground;
+  }
+
+  .timeline-history-count {
+    @apply whitespace-nowrap text-right text-xs tabular-nums text-muted-foreground;
+  }
+
+  .timeline-history-summary {
+    @apply col-start-2 row-start-2 justify-self-end whitespace-nowrap text-xs leading-5 text-muted-foreground;
+  }
+
+  .timeline-history-diff {
+    @apply flex flex-nowrap justify-end gap-1.5 text-xs;
+  }
+
+  .timeline-diff-chip {
+    @apply rounded-full px-2 py-0.5 text-xs font-medium leading-4;
+  }
+
+  .timeline-diff-chip.additions {
+    @apply bg-emerald-500/10 text-emerald-600;
+  }
+
+  .timeline-diff-chip.removals {
+    @apply bg-destructive/10 text-destructive;
+  }
+
+  .timeline-detail {
+    @apply flex flex-1 min-h-0 flex-col gap-2 overflow-hidden min-w-0;
+    max-width: 100%;
+  }
+
+  .timeline-page .timeline-detail {
+    @apply rounded-lg border border-border bg-card p-4 shadow-sm;
+  }
+
+  .timeline-detail .timeline-panel-meta {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-xs text-muted-foreground;
+  }
+
+  .timeline-panel-time {
+    @apply min-w-0 truncate font-medium text-foreground;
+  }
+
+  .timeline-panel-count {
+    @apply whitespace-nowrap text-xs tabular-nums text-muted-foreground;
+  }
+
+  .timeline-panel-actions {
+    @apply flex shrink-0 items-center gap-2;
+  }
+
+  .timeline-diff-title {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  .timeline-diff-muted {
+    @apply text-xs font-medium text-muted-foreground;
+  }
+
+  .timeline-panel-diff {
+    @apply flex min-w-0 flex-col gap-3;
+    max-width: 100%;
+  }
+
+  /* Match Home's borderless workspace surface. */
+  .timeline-card {
+    @apply gap-2 overflow-hidden rounded-2xl border-0 bg-muted/20 p-4 shadow-none;
+  }
+
+  .timeline-panel-diff-group {
+    @apply flex w-full min-w-0 flex-col gap-2;
+  }
+
+  .timeline-panel-diff-group.additions,
+  .timeline-panel-diff-group.removals {
+    @apply rounded-none border-0 bg-transparent p-0 shadow-none;
+  }
+
+  .timeline-panel-diff-group.additions .timeline-diff-title {
+    @apply text-emerald-600;
+  }
+
+  .timeline-panel-diff-group.removals .timeline-diff-title {
+    @apply text-destructive;
+  }
+
+  .timeline-panel-diff-group ul {
+    @apply list-none p-0;
+  }
+
+  .timeline-diff-list {
+    @apply flex min-w-0 list-none flex-col gap-2.5 p-0;
+  }
+
+  /* Diff items reuse Home's `.tab-item` appearance; no custom variant. */
+  .timeline-diff-item {
+    @apply cursor-default min-w-0 max-w-full overflow-hidden;
+  }
+
+  .timeline-diff-item.is-addition {
+    @apply border-0 bg-emerald-500/10;
+  }
+
+  .timeline-diff-item.is-addition:hover {
+    @apply bg-emerald-500/15;
+  }
+
+  .timeline-diff-item.is-removal {
+    @apply border-0 bg-destructive/10;
+  }
+
+  .timeline-diff-item.is-removal:hover {
+    @apply bg-destructive/15;
+  }
+
+  .timeline-diff-item.is-removal .tab-title,
+  .timeline-diff-item.is-removal .tab-link {
+    @apply text-destructive/80;
+  }
+
+  .timeline-diff-item.is-addition .tab-title {
+    @apply text-emerald-700;
+  }
+
+  .timeline-diff-section {
+    @apply flex flex-1 min-h-0 flex-col min-w-0;
+    max-width: 100%;
+  }
+
+  .timeline-diff-scroll {
+    @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden pr-1;
+    overscroll-behavior-y: contain;
+  }
+
+  .timeline-restore-error {
+    @apply -mt-1 text-xs leading-5 text-destructive;
+  }
+
+  .timeline-restore-action {
+    @apply rounded-xl border-0 bg-primary/10 text-sm text-primary-readable shadow-none hover:bg-primary/15 hover:text-primary-readable;
+  }
+
+  .timeline-restore-action:disabled {
+    @apply bg-primary/5 text-primary-readable/50 opacity-100;
+  }
+
+  .timeline-panel-empty {
+    @apply flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground;
+  }
+
+  @container (max-width: 720px) {
+    .timeline-panels {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(160px, 0.7fr) minmax(300px, 1.3fr);
+    }
+  }
+
+  .timeline-body-scroll,
+  .timeline-history-scroll,
+  .timeline-diff-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .timeline-body-scroll::-webkit-scrollbar,
+  .timeline-history-scroll::-webkit-scrollbar,
+  .timeline-diff-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}

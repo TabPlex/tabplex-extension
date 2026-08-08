@@ -1,0 +1,1 @@
+export const SIDEBAR_LONG_HOVER_MS = 200

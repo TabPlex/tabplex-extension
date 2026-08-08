@@ -1,0 +1,59 @@
+name: "Submit to Web Store"
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_brand_and_legal_clearance:
+        description: "已完成正式品牌、Plex 商标和法律发布审查"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ inputs.confirm_brand_and_legal_clearance }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: chrome-web-store-production
+    env:
+      TABPLEX_RELEASE_DESCRIPTION: "TabPlex 是本地优先、可恢复的任务上下文工作区，可在当前窗口安全切换任务标签，并保留笔记与链接。"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ff378ebe6b225b0680b81c1ad4498ae0d1d3a5e3 # v6.0.10
+        with:
+          run_install: false
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify release candidate
+        run: |
+          pnpm format:check
+          pnpm scan:secrets
+          pnpm licenses:check
+          pnpm audit:prod
+          pnpm typecheck
+          pnpm typecheck:unused
+          pnpm typecheck:strictnull:core
+          pnpm test
+      - name: Build the extension
+        run: pnpm build:chrome
+      - name: Smoke production extension pages
+        run: pnpm smoke:extension-pages -- build/chrome-mv3-prod
+      - name: Package the extension into a zip artifact
+        run: pnpm package:chrome
+      - name: Verify final release artifact
+        run: pnpm verify:release-artifacts -- build/chrome-mv3-prod
+      - name: Browser Platform Publish
+        uses: PlasmoHQ/bpp@c15984c0a74f452851c605cab46f34d9fd6cb158 # v3.8.0
+        with:
+          keys: ${{ secrets.SUBMIT_KEYS }}
+          artifact: build/chrome-mv3-prod.zip

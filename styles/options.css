@@ -1,0 +1,69 @@
+@tailwind components;
+
+@layer components {
+  .options-root {
+    @apply mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pb-12 pt-9 text-foreground;
+    min-height: 100%;
+    background: transparent;
+  }
+
+  .settings-page {
+    @apply h-full max-w-[920px] overflow-y-auto;
+  }
+
+  .options-header {
+    @apply flex flex-col gap-4 md:flex-row md:items-center md:justify-between;
+  }
+
+  .settings-page-header {
+    @apply items-start;
+    padding: 1rem 1.125rem;
+    border: 1px solid hsl(var(--border));
+    border-radius: 1.25rem;
+    background: hsl(var(--card));
+    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.08);
+  }
+
+  .settings-page-heading {
+    @apply grid max-w-2xl gap-1.5;
+  }
+
+  .options-title {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  .settings-page-description {
+    @apply text-sm leading-relaxed text-muted-foreground;
+  }
+
+  .options-meta {
+    @apply rounded-full px-3 py-1.5 text-xs text-muted-foreground;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted) / 0.5);
+  }
+
+  .options-panel {
+    @apply flex flex-col;
+  }
+
+  .settings-page-panel {
+    @apply gap-0 rounded-none border-0 bg-transparent p-0 shadow-none;
+  }
+
+  .settings-page .settings-body {
+    @apply h-auto overflow-visible pb-0;
+  }
+
+  .settings-page .settings-grid {
+    @apply mx-auto w-full max-w-[800px];
+  }
+}
+
+@media (forced-colors: active) {
+  .settings-page-header,
+  .options-meta {
+    border: 1px solid CanvasText !important;
+    background: Canvas !important;
+    box-shadow: none !important;
+  }
+}

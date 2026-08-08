@@ -1,0 +1,68 @@
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+*.pem
+*.p12
+*.pfx
+*.keystore
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env
+.env*.local
+
+out/
+build/
+dist/
+
+# plasmo
+.plasmo
+
+# typescript
+*.tsbuildinfo
+
+# IDE settings
+.idea/
+.vscode/
+
+# Local tooling
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/tabplex-agent-control/
+!/.agents/skills/tabplex-agent-control/**
+.claude/
+.codex/
+.cursor/
+.github/skills/
+.worktrees/
+.pnpm-store/
+
+# Local AI notes / planning docs
+.trae/
+.spec-workflow/
+docs/*
+!docs/testing-standards.md
+
+# Local cloud-only Supabase assets
+supabase/cloud/
+supabase/.temp/
+
+# Local audit artifacts
+AUDIT_REPORT.md
+CRITICAL_ISSUES.md
