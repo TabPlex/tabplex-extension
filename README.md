@@ -108,6 +108,8 @@ handlers, queues, switching state machines, and high-cost interactions. Read the
 
 Agent control is disabled by default. It uses Chrome Native Messaging and a
 user-only Unix socket; it does not expose an HTTP, WebSocket, MCP, or TCP port.
+Chrome requests the Native Messaging permission only when you turn the feature
+on and removes it again when you turn the feature off.
 Install the local host for the currently loaded extension ID:
 
 ```bash

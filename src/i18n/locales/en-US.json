@@ -148,6 +148,8 @@
         "copied": "Instructions copied",
         "copyFailed": "Copy failed. Please try again.",
         "failed": "Unable to update Agent control.",
+        "permissionDenied": "Chrome did not grant local app communication. Agent control remains off.",
+        "permissionRemovalFailed": "Agent control is off, but Chrome could not remove its local app communication permission.",
         "status": {
           "disabled": "Disabled",
           "connecting": "Connecting to local component…",

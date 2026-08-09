@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   copyToClipboard: vi.fn(async () => true)
 }))
 const sendMessage = vi.fn()
+const requestPermission = vi.fn()
+const removePermission = vi.fn()
+const containsPermission = vi.fn()
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({ t: (key: string) => key })
@@ -45,8 +48,16 @@ describe("AgentControlSettings", () => {
       ok: true,
       result: { state: "connected" }
     })
+    requestPermission.mockResolvedValue(true)
+    removePermission.mockResolvedValue(true)
+    containsPermission.mockResolvedValue(false)
     mocks.copyToClipboard.mockResolvedValue(true)
     globalThis.chrome = {
+      permissions: {
+        contains: containsPermission,
+        remove: removePermission,
+        request: requestPermission
+      },
       runtime: {
         id: "b".repeat(32),
         sendMessage
@@ -79,6 +90,31 @@ describe("AgentControlSettings", () => {
 
     await user.click(screen.getByRole("switch"))
     await waitFor(() => expect(onEnabledChange).toHaveBeenCalledWith(false))
+    expect(removePermission).toHaveBeenCalledWith({
+      permissions: ["nativeMessaging"]
+    })
+  })
+
+  it("keeps the setting off when Chrome permission is denied", async () => {
+    const user = userEvent.setup()
+    const onEnabledChange = vi.fn()
+    requestPermission.mockResolvedValue(false)
+
+    render(
+      <AgentControlSettings enabled={false} onEnabledChange={onEnabledChange} />
+    )
+
+    await user.click(screen.getByRole("switch"))
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("settings.control.agentControl.permissionDenied")
+      ).toBeTruthy()
+    )
+    expect(requestPermission).toHaveBeenCalledWith({
+      permissions: ["nativeMessaging"]
+    })
+    expect(onEnabledChange).not.toHaveBeenCalled()
   })
 
   it("copies a self-contained Agent instruction with the extension id", async () => {

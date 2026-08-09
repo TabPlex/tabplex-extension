@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Button } from "~components/ui/button"
 import { Switch } from "~components/ui/switch"
 import { createAgentControlInstructions } from "~features/settings/logic/agentControlInstructions"
+import { changeAgentControlEnabled } from "~features/settings/logic/changeAgentControlEnabled"
 import { copyToClipboard } from "~features/settings/utils/copyToClipboard"
 
 type AgentControlStatus = {
@@ -72,8 +73,26 @@ export const AgentControlSettings = ({
     if (busy) return
     setBusy(true)
     setFeedback(null)
-    void onEnabledChange(nextEnabled)
-      .then(refreshStatus)
+    void changeAgentControlEnabled(nextEnabled, onEnabledChange)
+      .then(async (result) => {
+        if (result === "permission-denied") {
+          setStatus({ state: "disabled" })
+          setFeedback({
+            source: "control",
+            message: t("settings.control.agentControl.permissionDenied")
+          })
+          return
+        }
+        if (result === "permission-removal-failed") {
+          setStatus({ state: "disabled" })
+          setFeedback({
+            source: "control",
+            message: t("settings.control.agentControl.permissionRemovalFailed")
+          })
+          return
+        }
+        await refreshStatus()
+      })
       .catch(() => {
         setStatus({ state: nextEnabled ? "unavailable" : "disabled" })
         setFeedback({

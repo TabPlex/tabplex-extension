@@ -148,6 +148,8 @@
         "copied": "指令已复制",
         "copyFailed": "复制失败，请重试。",
         "failed": "无法更新 Agent 控制状态。",
+        "permissionDenied": "Chrome 未授予与本机应用通信的权限，Agent 控制仍保持关闭。",
+        "permissionRemovalFailed": "Agent 控制已关闭，但 Chrome 未能移除与本机应用通信的权限。",
         "status": {
           "disabled": "未启用",
           "connecting": "正在连接本机组件…",

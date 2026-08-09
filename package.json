@@ -2,12 +2,12 @@
   "name": "tabplex",
   "private": true,
   "displayName": "TabPlex",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.33.2",
   "description": "本次测试范围：工作区滚动并发加载、切换可靠性、页面定位与键盘交互",
-  "author": "jellow <dvdx@foxmail.com>",
-  "homepage": "https://github.com/TabPlex/tabplex-extension#readme",
+  "author": "TabPlex <contact@tabplex.com>",
+  "homepage": "https://tabplex.com/",
   "bugs": {
     "url": "https://github.com/TabPlex/tabplex-extension/issues"
   },
@@ -119,15 +119,17 @@
   },
   "manifest": {
     "description": "$TABPLEX_RELEASE_DESCRIPTION",
-    "homepage_url": "https://github.com/TabPlex/tabplex-extension",
+    "homepage_url": "https://tabplex.com/",
     "permissions": [
       "alarms",
-      "nativeMessaging",
       "tabs",
       "tabGroups",
       "storage",
       "unlimitedStorage",
       "windows"
+    ],
+    "optional_permissions": [
+      "nativeMessaging"
     ],
     "content_security_policy": {
       "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none';"
@@ -138,28 +140,28 @@
           "default": "Alt+H",
           "mac": "Alt+H"
         },
-        "description": "打开主页/切换器"
+        "description": "Open Home and the workspace switcher"
       },
       "open-quick-create": {
         "suggested_key": {
           "default": "Alt+N",
           "mac": "Alt+N"
         },
-        "description": "快速新建工作区"
+        "description": "Quickly create a workspace"
       },
       "switch-workspace-prev": {
         "suggested_key": {
           "default": "Alt+Up",
           "mac": "Alt+Up"
         },
-        "description": "切换到上一个工作区"
+        "description": "Switch to the previous workspace"
       },
       "switch-workspace-next": {
         "suggested_key": {
           "default": "Alt+Down",
           "mac": "Alt+Down"
         },
-        "description": "切换到下一个工作区"
+        "description": "Switch to the next workspace"
       }
     }
   }

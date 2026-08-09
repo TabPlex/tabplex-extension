@@ -19,22 +19,21 @@ const PACKAGE_VERSION = JSON.parse(
   readFileSync(resolve("package.json"), "utf8")
 ).version
 
-const EXPECTED_PERMISSIONS = new Set([
+const EXPECTED_REQUIRED_PERMISSIONS = new Set([
   "alarms",
-  "nativeMessaging",
   "storage",
   "tabGroups",
   "tabs",
   "unlimitedStorage",
   "windows"
 ])
+const EXPECTED_OPTIONAL_PERMISSIONS = new Set(["nativeMessaging"])
 
 const EXPECTED_EXTENSION_PAGE_CSP =
   "script-src 'self'; object-src 'none'; base-uri 'none';"
 const FORBIDDEN_MANIFEST_ARRAY_FIELDS = [
   "content_scripts",
   "optional_host_permissions",
-  "optional_permissions",
   "web_accessible_resources"
 ]
 const REQUIRED_LEGAL_FILES = ["LICENSE", "PRIVACY.md", "THIRD_PARTY_NOTICES.md"]
@@ -123,8 +122,12 @@ const verifyManifest = (root, artifact, manifest, expectedDescription) => {
   }
 
   const permissions = new Set(manifest.permissions ?? [])
-  if (!sameSet(permissions, EXPECTED_PERMISSIONS)) {
+  if (!sameSet(permissions, EXPECTED_REQUIRED_PERMISSIONS)) {
     reportFailure(artifact, "权限集合偏离已审计的最小权限基线")
+  }
+  const optionalPermissions = new Set(manifest.optional_permissions ?? [])
+  if (!sameSet(optionalPermissions, EXPECTED_OPTIONAL_PERMISSIONS)) {
+    reportFailure(artifact, "可选权限必须仅包含按需申请的 nativeMessaging")
   }
   if ((manifest.host_permissions ?? []).length > 0) {
     reportFailure(artifact, "正式产物不应声明 host_permissions")

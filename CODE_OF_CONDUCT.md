@@ -21,7 +21,7 @@ project spaces.
 
 ## Reporting and enforcement
 
-Report conduct concerns privately to `dvdx@foxmail.com`. Do not use a public
+Report conduct concerns privately to `contact@tabplex.com`. Do not use a public
 issue. Maintainers may edit or remove content, lock discussions, reject
 contributions, or temporarily or permanently restrict participation when needed
 to protect the community. Reports will be handled as privately as practical;

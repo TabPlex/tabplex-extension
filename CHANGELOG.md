@@ -2,6 +2,20 @@
 
 This project follows a release-note format based on user-visible changes.
 
+## 1.0.1 - 2026-08-09
+
+### Changed
+
+- Request Native Messaging only when the user explicitly enables optional
+  Agent control, and remove the permission again when the feature is disabled.
+- Align release metadata, contact details, and the official homepage with the
+  store-ready build.
+
+### Fixed
+
+- Publish the post-1.0.0 workspace-switch reliability fixes under a distinct
+  version so one release number never identifies different binaries.
+
 ## 1.0.0 - 2026-08-09
 
 ### Added

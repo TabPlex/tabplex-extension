@@ -12,7 +12,7 @@ credentials, pairing codes, exported backups, browsing history, or private URLs
 in a report.
 
 Use GitHub's private security-advisory reporting for this repository when it is
-available. Otherwise, email `dvdx@foxmail.com` with:
+available. Otherwise, email `contact@tabplex.com` with:
 
 - the affected version and browser;
 - a concise reproduction;

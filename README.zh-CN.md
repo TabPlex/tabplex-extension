@@ -101,8 +101,9 @@ pnpm package:edge
 ## 可选本地 Agent 控制
 
 Agent 控制默认关闭。它使用 Chrome Native Messaging 和仅限当前用户访问的 Unix
-socket，不会暴露 HTTP、WebSocket、MCP 或 TCP 端口。先为当前加载的扩展 ID
-安装本地主机：
+socket，不会暴露 HTTP、WebSocket、MCP 或 TCP 端口。只有主动开启功能时，Chrome
+才会申请 Native Messaging 权限；关闭功能时会再次移除该权限。先为当前加载的
+扩展 ID 安装本地主机：
 
 ```bash
 pnpm agent:install -- --extension-id=<chrome-extension-id>

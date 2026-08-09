@@ -1,4 +1,9 @@
 import {
+  hasAgentControlPermission,
+  includesAgentControlPermission,
+  removeAgentControlPermission
+} from "~core/permissions/agentControlPermission"
+import {
   getWorkspaceWindowBinding,
   loadSettings,
   loadWorkspaces,
@@ -14,6 +19,7 @@ import {
 import { normalizeShortcutLabel, uuid } from "~core/utils"
 import { setLoggerConsoleEnabled } from "~lib/logger"
 import {
+  applySettingsUpdate,
   withAuxiliaryStorageWriteLock,
   withGlobalStorageWriteBarrier
 } from "~lib/storageQueues"
@@ -29,6 +35,7 @@ import {
   type AgentControlRuntime
 } from "./agentControl"
 import { createAgentBackgroundActionBridge } from "./agentControlInternalBridge"
+import { reconcileAgentControlPermissionState } from "./agentControlPermissionState"
 import { withAgentOperationLock } from "./agentOperationGate"
 import { runBackupRestoreCleanupAlarm } from "./backupRestoreCleanup"
 import { handleAgentControlMessage } from "./messages/handlers/agentControl"
@@ -100,6 +107,22 @@ const workspaceControllerReady = initWorkspaceController(
   startupRecoveryGate.ready
 )
 let agentControlRuntime: AgentControlRuntime | null = null
+
+const disableAgentControlSetting = async () => {
+  await applySettingsUpdate((settings) =>
+    settings.agentControlEnabled
+      ? { ...settings, agentControlEnabled: false }
+      : settings
+  )
+}
+
+const reconcileAgentControlPermission = () =>
+  reconcileAgentControlPermissionState({
+    isEnabled: async () => (await loadSettings()).agentControlEnabled === true,
+    hasPermission: hasAgentControlPermission,
+    removePermission: removeAgentControlPermission,
+    disable: disableAgentControlSetting
+  })
 
 const waitForStartupRecovery = async (scope: string) => {
   const ready = await startupRecoveryGate.wait()
@@ -237,6 +260,17 @@ if (chrome?.storage?.onChanged) {
   })
 }
 
+if (chrome?.permissions?.onRemoved) {
+  chrome.permissions.onRemoved.addListener((permissions) => {
+    if (!includesAgentControlPermission(permissions)) return
+    void workspaceControllerReady
+      .then(disableAgentControlSetting)
+      .catch((error) =>
+        console.warn("[TabPlex] Agent 权限撤销后关闭设置失败", error)
+      )
+  })
+}
+
 // Also pin/open Home when clicking the toolbar icon
 try {
   chrome.action.onClicked.addListener(async (tab) => {
@@ -359,6 +393,7 @@ registerAgentControlRuntime(agentControlRuntime)
 void workspaceControllerReady
   .then(async () => {
     await clearLegacyAgentControlState()
+    await reconcileAgentControlPermission()
     return agentControlRuntime?.syncWithSettings()
   })
   .catch((error) =>

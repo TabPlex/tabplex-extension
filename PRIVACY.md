@@ -3,7 +3,7 @@
 Last updated: 2026-08-09
 
 TabPlex is a local-first Chrome and Edge extension. This policy describes the
-current open-source `1.0.0` runtime.
+current open-source `1.0.1` runtime.
 
 ## Data TabPlex handles
 
@@ -50,8 +50,8 @@ software you do not trust.
   state.
 - `alarms`: resume bounded recovery and maintenance work after an MV3 service
   worker stops.
-- `nativeMessaging`: connect to the optional local Agent component after the
-  user enables it.
+- `nativeMessaging` (requested at runtime): connect to the optional local Agent
+  component only after the user enables it.
 
 ## User control
 
