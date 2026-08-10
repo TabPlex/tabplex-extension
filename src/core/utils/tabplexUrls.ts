@@ -2,6 +2,7 @@ const DEFAULT_TABPLEX_WEBSITE_BASE_URL = "https://www.tabplex.com"
 const DEFAULT_TABPLEX_WEB_APP_BASE_URL = "https://tabplex.com"
 
 export const TABPLEX_SOURCE_URL = "https://github.com/TabPlex/tabplex-extension"
+export const TABPLEX_TWITTER_URL = "https://x.com/tabplex"
 
 const normalizeBaseUrl = (rawBaseUrl: unknown) =>
   String(rawBaseUrl || "")

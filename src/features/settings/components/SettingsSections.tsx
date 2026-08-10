@@ -14,8 +14,12 @@ import {
 } from "~components/ui/select"
 import { SunDimIcon } from "~components/ui/sun-dim"
 import { Switch } from "~components/ui/switch"
+import { TwitterIcon } from "~components/ui/twitter"
 import { ACCENT_PRESET_COLORS } from "~core/types"
-import { TABPLEX_SOURCE_URL } from "~core/utils/tabplexUrls"
+import {
+  TABPLEX_SOURCE_URL,
+  TABPLEX_TWITTER_URL
+} from "~core/utils/tabplexUrls"
 import type { LocalStorageUsageState } from "~features/settings/hooks/useLocalStorageUsage"
 import { openShortcutsManager } from "~features/shortcuts/commandShortcuts"
 import { cn } from "~lib/utils"
@@ -284,19 +288,9 @@ export const AboutAndDeveloperSections = ({
         </div>
         <div className="setting-list">
           <div className="setting-row settings-feedback-row">
-            <div className="setting-info settings-feedback-info">
-              <span className="setting-title settings-feedback-title">
-                {t("settings.about.feedback.title")}
-              </span>
-              {feedbackDescription.trim() ? (
-                <span className="setting-desc">{feedbackDescription}</span>
-              ) : null}
-              {logExportStatus ? (
-                <span className="setting-hint" role="status">
-                  {logExportStatus}
-                </span>
-              ) : null}
-            </div>
+            <span className="setting-title settings-feedback-title">
+              {t("settings.about.feedback.title")}
+            </span>
             <div className="setting-actions settings-feedback-actions">
               <Button
                 size="sm"
@@ -315,17 +309,38 @@ export const AboutAndDeveloperSections = ({
                 {t("settings.about.feedback.email")}
               </Button>
             </div>
-          </div>
-          <div className="settings-about-footer">
-            <a
-              className="settings-github-link"
-              href={TABPLEX_SOURCE_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={t("settings.about.github")}
-              title={t("settings.about.github")}>
-              <GitHubIcon size={18} aria-hidden="true" />
-            </a>
+            {feedbackDescription.trim() ? (
+              <span className="setting-desc settings-feedback-description">
+                {feedbackDescription}
+              </span>
+            ) : null}
+            <div className="settings-feedback-socials">
+              <a
+                className="settings-social-link"
+                href={TABPLEX_TWITTER_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={t("settings.about.twitter")}
+                title={t("settings.about.twitter")}>
+                <TwitterIcon size={18} aria-hidden="true" />
+              </a>
+              <a
+                className="settings-social-link"
+                href={TABPLEX_SOURCE_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={t("settings.about.github")}
+                title={t("settings.about.github")}>
+                <GitHubIcon size={18} aria-hidden="true" />
+              </a>
+            </div>
+            {logExportStatus ? (
+              <span
+                className="setting-hint settings-feedback-status"
+                role="status">
+                {logExportStatus}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>

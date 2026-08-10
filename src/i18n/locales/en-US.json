@@ -174,9 +174,10 @@
     "about": {
       "desc": "Group tabs into workspaces and switch contexts safely to keep research and work focused.",
       "github": "View TabPlex on GitHub",
+      "twitter": "View TabPlex on X (Twitter)",
       "feedback": {
         "title": "Feedback",
-        "desc": "TabPlex is an open-source project we maintain together. Report issues, share ideas, or contribute code; attach logs to bug reports to make diagnosis easier.",
+        "desc": "Report issues, share ideas, or contribute code; attach logs to bug reports to make diagnosis easier.",
         "copy": "Copy logs",
         "email": "Email feedback",
         "copied": "Logs copied.",

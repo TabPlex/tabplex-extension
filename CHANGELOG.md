@@ -2,6 +2,21 @@
 
 This project follows a release-note format based on user-visible changes.
 
+## 1.0.2 - 2026-08-10
+
+### Changed
+
+- Pin Chrome and Edge production packages to the Chrome Web Store public key,
+  so GitHub releases from this version onward keep the extension ID
+  `cgenkcelnlbjbnpmembeekfjcldfagbh`.
+- Simplify the feedback copy and add the official X and GitHub links beneath
+  the copy-log and email actions.
+
+### Fixed
+
+- Keep the social icons aligned with the feedback description instead of
+  wrapping into a detached footer row.
+
 ## 1.0.1 - 2026-08-09
 
 ### Changed

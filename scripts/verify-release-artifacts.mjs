@@ -13,6 +13,7 @@ import { tmpdir } from "node:os"
 import { extname, join, relative, resolve, sep } from "node:path"
 
 const DEFAULT_ARTIFACTS = ["build/chrome-mv3-prod", "build/edge-mv3-prod"]
+const EXPECTED_EXTENSION_ID = "cgenkcelnlbjbnpmembeekfjcldfagbh"
 const RELEASE_DESCRIPTION_ENV = "TABPLEX_RELEASE_DESCRIPTION"
 const RELEASE_TAG_ENV = "TABPLEX_RELEASE_TAG"
 const PACKAGE_VERSION = JSON.parse(
@@ -109,6 +110,50 @@ const verifyReleaseDescription = (artifact, manifest, expectedDescription) => {
   }
 }
 
+const deriveExtensionId = (manifestKey) => {
+  if (typeof manifestKey !== "string") return null
+  const normalizedKey = manifestKey.trim()
+  if (
+    normalizedKey.length === 0 ||
+    normalizedKey.length % 4 !== 0 ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(normalizedKey)
+  ) {
+    return null
+  }
+
+  const publicKey = Buffer.from(normalizedKey, "base64")
+  if (
+    publicKey.length === 0 ||
+    publicKey.toString("base64") !== normalizedKey
+  ) {
+    return null
+  }
+
+  const digestPrefix = createHash("sha256")
+    .update(publicKey)
+    .digest("hex")
+    .slice(0, 32)
+  return [...digestPrefix]
+    .map((character) =>
+      String.fromCharCode(97 + Number.parseInt(character, 16))
+    )
+    .join("")
+}
+
+const verifyExtensionIdentity = (artifact, manifest) => {
+  const extensionId = deriveExtensionId(manifest.key)
+  if (!extensionId) {
+    reportFailure(artifact, "manifest.key 缺失或不是规范的 Base64 公钥")
+    return
+  }
+  if (extensionId !== EXPECTED_EXTENSION_ID) {
+    reportFailure(
+      artifact,
+      `manifest.key 生成的扩展 ID 必须是 ${EXPECTED_EXTENSION_ID}，当前为 ${extensionId}`
+    )
+  }
+}
+
 const verifyManifest = (root, artifact, manifest, expectedDescription) => {
   if (!manifest) return
   if (manifest.manifest_version !== 3) {
@@ -120,6 +165,7 @@ const verifyManifest = (root, artifact, manifest, expectedDescription) => {
       `manifest.version 必须与 package.json 版本 ${PACKAGE_VERSION} 一致`
     )
   }
+  verifyExtensionIdentity(artifact, manifest)
 
   const permissions = new Set(manifest.permissions ?? [])
   if (!sameSet(permissions, EXPECTED_REQUIRED_PERMISSIONS)) {

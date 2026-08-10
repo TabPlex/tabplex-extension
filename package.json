@@ -2,7 +2,7 @@
   "name": "tabplex",
   "private": true,
   "displayName": "TabPlex",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.33.2",
   "description": "本次测试范围：工作区滚动并发加载、切换可靠性、页面定位与键盘交互",
@@ -119,6 +119,7 @@
   },
   "manifest": {
     "description": "$TABPLEX_RELEASE_DESCRIPTION",
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAri2LUKR18xtEWTF1PcRIWZZqPCNFBy4R3v4dLOZbg3GrXNeO3nIZPwztRnq/aGwfhPyCd4pOCXAHo+qLByJCs1Lyir0MYvtymVQtUM9ggRB91bKaJYSUdhiffX65rvJaiDYTAaZZ8GryRvOdHvoo1KJYlBlzsP77bCSApD8JYvyUvdC4dG8HVmcoswKvORkWw5HJAyVaWxKm/BKdmGXRh/w5/heuFpZzDRqkfynOiCi20VpGWJqFP9N9JVjBgy8FFPEH9RtjaLFpZkV2/ajLgQZU1/0s/NnwdXXPAOYZC8hd5budCW89dg+XNoR7qGfHZuqDEFyxxbzmAZvq23vvJQIDAQAB",
     "homepage_url": "https://tabplex.com/",
     "permissions": [
       "alarms",

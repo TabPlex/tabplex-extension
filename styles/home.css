@@ -1349,65 +1349,58 @@
   }
 
   .settings-feedback-row {
-    @apply items-start;
+    @apply grid items-start gap-x-3.5 gap-y-1;
     border-bottom: 0;
-  }
-
-  .settings-feedback-info {
-    @apply pr-2;
-    min-width: 0;
-  }
-
-  .settings-feedback-info .setting-desc {
-    max-width: 18rem;
+    grid-template-areas:
+      "title actions"
+      "description socials"
+      "status status";
+    grid-template-columns: minmax(0, 1fr) max-content;
+    overflow: visible;
   }
 
   .settings-feedback-title {
     @apply whitespace-nowrap;
+    align-self: center;
+    grid-area: title;
+  }
+
+  .settings-feedback-description {
+    grid-area: description;
+    max-width: 18rem;
   }
 
   .settings-feedback-actions {
-    @apply ml-auto flex-wrap justify-end gap-1.5;
-    max-width: 280px;
+    @apply flex-nowrap justify-end gap-1.5;
+    grid-area: actions;
   }
 
   .settings-feedback-action {
     @apply h-8 px-0;
   }
 
-  .settings-about-footer {
-    @apply flex justify-end pt-1;
+  .settings-feedback-socials {
+    @apply flex justify-end gap-1.5;
+    grid-area: socials;
   }
 
-  .settings-github-link {
-    @apply inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors;
+  .settings-feedback-status {
+    grid-area: status;
   }
 
-  .settings-github-link:hover {
+  .settings-social-link {
+    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors;
+  }
+
+  .settings-social-link:hover {
     @apply bg-muted/50 text-foreground;
   }
 
-  .settings-github-link:focus-visible {
+  .settings-social-link:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
   @media (max-width: 640px) {
-    .settings-feedback-row {
-      @apply flex-col gap-2;
-    }
-
-    .settings-feedback-title {
-      white-space: normal;
-    }
-
-    .settings-feedback-actions {
-      @apply ml-0 max-w-full justify-start;
-    }
-
-    .settings-about-footer {
-      @apply justify-start;
-    }
-
     .settings-backup-row {
       @apply flex-col gap-1.5;
     }
