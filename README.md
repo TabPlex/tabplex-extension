@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <sub>Real extension demo: switch the current window between complete task contexts.</sub>
+  <sub>Real Chrome demo: switching workspaces replaces the current window's full tab context.</sub>
 </p>
 
 TabPlex saves a browser task—tabs, tab groups, notes, linked resources, and
