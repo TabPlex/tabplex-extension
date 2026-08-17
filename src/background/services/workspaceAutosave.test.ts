@@ -33,6 +33,7 @@ vi.mock("~core/storage", () => ({
 }))
 
 vi.mock("~lib/workspacesQueue", () => ({
+  loadWorkspacesSnapshot: vi.fn(async () => structuredClone(state.workspaces)),
   applyWorkspacesUpdate: vi.fn(async (updater) => {
     const next = await updater(state.workspaces)
     state.workspaces = next
@@ -117,6 +118,27 @@ describe("workspaceAutosave", () => {
       { url: "https://newest.example" }
     ])
     expect(captureWorkspaceWindowTabs).not.toHaveBeenCalled()
+  })
+
+  it("revalidates the canonical revision after capturing outside the write queue", async () => {
+    vi.mocked(captureWorkspaceWindowTabs).mockImplementationOnce(async () => {
+      state.workspaces[0] = {
+        ...state.workspaces[0],
+        tabs: [{ url: "https://newer.example" }],
+        tabsRevision: 1
+      }
+      return [{ url: "https://captured.example" }] as Awaited<
+        ReturnType<typeof captureWorkspaceWindowTabs>
+      >
+    })
+
+    await expect(flushWorkspaceWindowAutosave(7)).resolves.toEqual({
+      status: "stale",
+      workspaceId: "shared"
+    })
+
+    expect(state.workspaces[0].tabs).toEqual([{ url: "https://newer.example" }])
+    expect(state.bindings["7"].stale).toBe(true)
   })
 
   it("does not stale another window when nothing changed", async () => {

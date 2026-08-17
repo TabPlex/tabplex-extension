@@ -20,6 +20,8 @@ import {
 } from "~lib/common"
 import { setLoggerConsoleEnabled } from "~lib/logger"
 
+import { isWorkspaceWindowLoading } from "../logic/workspaceLoadingState"
+
 type CurrentWindowProjection =
   | { status: "pending" | "unavailable" }
   | { status: "ready"; windowId: number; workspaceId: string | null }
@@ -47,6 +49,13 @@ const projectWorkspaceState = (
   }
 }
 
+const loadWorkspaceTabWarmupJobs = async () => {
+  const result = await chrome.storage.session.get(
+    STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS
+  )
+  return result[STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS]
+}
+
 export const useWorkspaceData = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [settings, setSettings] = useState<Settings>(() => {
@@ -60,12 +69,15 @@ export const useWorkspaceData = () => {
   const [workspaceState, setWorkspaceState] = useState<WorkspaceState>(
     DEFAULT_WORKSPACE_STATE
   )
+  const [workspaceTabsLoading, setWorkspaceTabsLoading] = useState(false)
 
   useEffect(() => {
     let alive = true
     let currentWindow: CurrentWindowProjection = { status: "pending" }
     let latestBindingsValue: unknown
     let bindingsChangeGeneration = 0
+    let latestWarmupJobsValue: unknown
+    let warmupJobsChangeGeneration = 0
     const loadState = {
       workspacesLoaded: false,
       settingsLoaded: false,
@@ -103,20 +115,38 @@ export const useWorkspaceData = () => {
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
     ) => {
-      if (areaName === "session" && changes[STORAGE_KEYS.WINDOW_BINDINGS]) {
-        latestBindingsValue = changes[STORAGE_KEYS.WINDOW_BINDINGS].newValue
-        bindingsChangeGeneration += 1
-        if (currentWindow.status !== "ready") return
-        currentWindow = {
-          ...currentWindow,
-          workspaceId: workspaceIdFromBindings(
-            latestBindingsValue,
-            currentWindow.windowId
-          )
+      if (areaName === "session") {
+        const bindingsChange = changes[STORAGE_KEYS.WINDOW_BINDINGS]
+        if (bindingsChange) {
+          latestBindingsValue = bindingsChange.newValue
+          bindingsChangeGeneration += 1
+          if (currentWindow.status === "ready") {
+            currentWindow = {
+              ...currentWindow,
+              workspaceId: workspaceIdFromBindings(
+                latestBindingsValue,
+                currentWindow.windowId
+              )
+            }
+            setWorkspaceState((previous) =>
+              projectWorkspaceState(previous, currentWindow)
+            )
+          }
         }
-        setWorkspaceState((previous) =>
-          projectWorkspaceState(previous, currentWindow)
-        )
+
+        const warmupJobsChange = changes[STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS]
+        if (warmupJobsChange) {
+          latestWarmupJobsValue = warmupJobsChange.newValue
+          warmupJobsChangeGeneration += 1
+          if (currentWindow.status === "ready") {
+            setWorkspaceTabsLoading(
+              isWorkspaceWindowLoading(
+                latestWarmupJobsValue,
+                currentWindow.windowId
+              )
+            )
+          }
+        }
         return
       }
       if (areaName === "local") {
@@ -202,20 +232,34 @@ export const useWorkspaceData = () => {
         }
 
         const bindingGeneration = bindingsChangeGeneration
-        const binding = await getWorkspaceWindowBinding(window.id)
+        const warmupGeneration = warmupJobsChangeGeneration
+        const [binding, loadedWarmupJobs] = await Promise.all([
+          getWorkspaceWindowBinding(window.id),
+          loadWorkspaceTabWarmupJobs().catch(() => undefined)
+        ])
         const workspaceId =
           bindingGeneration === bindingsChangeGeneration
             ? (binding?.workspaceId ?? null)
             : workspaceIdFromBindings(latestBindingsValue, window.id)
+        const warmupJobs =
+          warmupGeneration === warmupJobsChangeGeneration
+            ? loadedWarmupJobs
+            : latestWarmupJobsValue
         currentWindow = { status: "ready", windowId: window.id, workspaceId }
 
-        if (alive && loadState.workspaceStateLoaded) {
-          setWorkspaceState((previous) =>
-            projectWorkspaceState(previous, currentWindow)
+        if (alive) {
+          setWorkspaceTabsLoading(
+            isWorkspaceWindowLoading(warmupJobs, window.id)
           )
+          if (loadState.workspaceStateLoaded) {
+            setWorkspaceState((previous) =>
+              projectWorkspaceState(previous, currentWindow)
+            )
+          }
         }
       } catch {
         currentWindow = { status: "unavailable" }
+        if (alive) setWorkspaceTabsLoading(false)
       }
     }
 
@@ -276,5 +320,11 @@ export const useWorkspaceData = () => {
     }
   }, [])
 
-  return { workspaces, settings, workspaceState, hydrated }
+  return {
+    workspaces,
+    settings,
+    workspaceState,
+    hydrated,
+    workspaceTabsLoading
+  }
 }

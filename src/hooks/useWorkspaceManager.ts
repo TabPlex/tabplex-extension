@@ -8,8 +8,13 @@ import { useBrowserTheme } from "~hooks/useBrowserTheme"
 export type CreateOptions = CreateWorkspaceOptions
 
 export const useWorkspaceManager = () => {
-  const { workspaces, settings, workspaceState, hydrated } =
-    useWorkspaceDataContext()
+  const {
+    workspaces,
+    settings,
+    workspaceState,
+    hydrated,
+    workspaceTabsLoading
+  } = useWorkspaceDataContext()
   const actions = useWorkspaceActions()
   const browserTheme = useBrowserTheme()
 
@@ -51,6 +56,7 @@ export const useWorkspaceManager = () => {
       settings,
       workspaceState,
       hydrated,
+      workspaceTabsLoading,
       resolvedTheme,
       version,
       ...actions
@@ -64,6 +70,7 @@ export const useWorkspaceManager = () => {
       trashedWorkspaces,
       version,
       workspaceState,
+      workspaceTabsLoading,
       workspaces
     ]
   )

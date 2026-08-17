@@ -27,6 +27,10 @@ export const useHomeViewModel = () => {
   const overlays = useHomeOverlayState()
   const notices = useHomeNotice()
   const [query, setQuery] = useState("")
+  const workspaceInteractionLocked =
+    !workspaceManager.hydrated ||
+    workspaceManager.workspaceTabsLoading ||
+    switching.isSwitching
 
   const selection = useWorkspaceSelection({
     workspaces: workspaceManager.sortedWorkspaces,
@@ -48,7 +52,7 @@ export const useHomeViewModel = () => {
     setSelectedId: selection.setSelectedId,
     setFollowActive: selection.setFollowActive,
     cancelPreview: selection.cancelPreview,
-    switchActive: switching.isSwitching,
+    externallyLocked: workspaceInteractionLocked,
     guideWorkspaceId: onboarding.state?.guideWorkspaceId,
     showWorkspaceTrashed: notices.showWorkspaceTrashed
   })

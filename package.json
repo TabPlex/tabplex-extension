@@ -2,10 +2,10 @@
   "name": "tabplex",
   "private": true,
   "displayName": "TabPlex",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.33.2",
-  "description": "本次测试范围：工作区滚动并发加载、切换可靠性、页面定位与键盘交互",
+  "description": "本次测试范围：切换期间禁用删除，以及工具栏 Popup 与固定 Home 入口",
   "author": "TabPlex <contact@tabplex.com>",
   "homepage": "https://tabplex.com/",
   "bugs": {

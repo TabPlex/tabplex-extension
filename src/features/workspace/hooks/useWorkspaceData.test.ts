@@ -38,6 +38,7 @@ vi.mock("react", () => ({
 }))
 
 vi.mock("~core/storage", () => ({
+  getWorkspaceWindowBinding: vi.fn(),
   loadWorkspaces: vi.fn(),
   loadSettings: vi.fn(),
   loadWorkspaceState: vi.fn()
@@ -277,5 +278,65 @@ describe("useWorkspaceData", () => {
 
     const hydratedSetter = stateSlots[2]?.setter
     expect(hydratedSetter).toHaveBeenCalledWith(true)
+  })
+
+  it("tracks background tab warmup for the current Chrome window", async () => {
+    const storageModule = await import("~core/storage")
+    vi.mocked(storageModule.loadWorkspaces).mockResolvedValueOnce([])
+    vi.mocked(storageModule.loadSettings).mockResolvedValueOnce(
+      DEFAULT_SETTINGS
+    )
+    vi.mocked(storageModule.loadWorkspaceState).mockResolvedValueOnce(
+      DEFAULT_WORKSPACE_STATE
+    )
+    vi.mocked(storageModule.getWorkspaceWindowBinding).mockResolvedValueOnce({
+      workspaceId: "workspace-1",
+      tabsRevision: 0,
+      updatedAt: 1
+    })
+
+    const sessionGet = vi.fn().mockResolvedValue({
+      [STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS]: {}
+    })
+    ;(globalThis as any).chrome.windows = {
+      getCurrent: vi.fn().mockResolvedValue({ id: 7, type: "normal" })
+    }
+    ;(globalThis as any).chrome.storage.session = { get: sessionGet }
+
+    const { useWorkspaceData } = await import("./useWorkspaceData")
+    useWorkspaceData()
+    await flushPromises()
+    await flushPromises()
+
+    const loadingSetter = stateSlots[4]?.setter
+    expect(loadingSetter).toHaveBeenLastCalledWith(false)
+
+    const warmupJob = {
+      runId: "warmup-1",
+      windowId: 7,
+      workspaceId: "workspace-1",
+      updatedAt: 2
+    }
+    onStorageChanged?.(
+      {
+        [STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS]: {
+          oldValue: {},
+          newValue: { 7: warmupJob }
+        } as chrome.storage.StorageChange
+      },
+      "session"
+    )
+    expect(loadingSetter).toHaveBeenLastCalledWith(true)
+
+    onStorageChanged?.(
+      {
+        [STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS]: {
+          oldValue: { 7: warmupJob },
+          newValue: {}
+        } as chrome.storage.StorageChange
+      },
+      "session"
+    )
+    expect(loadingSetter).toHaveBeenLastCalledWith(false)
   })
 })

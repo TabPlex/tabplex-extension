@@ -1,4 +1,5 @@
 import { STORAGE_KEYS, type OnboardingState } from "~core/types"
+import { withAuxiliaryStorageWriteLock } from "~lib/storageQueues"
 
 const ONBOARDING_VERSION = 1
 const ONBOARDING_SEED_STALE_MS = 30_000
@@ -59,9 +60,12 @@ const createSerialQueue = () => {
 
 export const createOnboardingCoordinator = (
   store: OnboardingStore,
-  options: { staleMs?: number } = {}
+  options: {
+    staleMs?: number
+    withWriteLock?: <T>(task: () => Promise<T>) => Promise<T>
+  } = {}
 ) => {
-  const enqueue = createSerialQueue()
+  const enqueue = options.withWriteLock ?? createSerialQueue()
   const staleMs = options.staleMs ?? ONBOARDING_SEED_STALE_MS
 
   return {
@@ -160,5 +164,6 @@ const chromeOnboardingStore: OnboardingStore = {
 }
 
 export const onboardingCoordinator = createOnboardingCoordinator(
-  chromeOnboardingStore
+  chromeOnboardingStore,
+  { withWriteLock: withAuxiliaryStorageWriteLock }
 )

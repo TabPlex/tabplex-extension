@@ -37,6 +37,12 @@ const auxiliaryStorageQueue = { current: Promise.resolve() }
 export const withAuxiliaryStorageWriteLock = <T>(task: () => Promise<T>) =>
   enqueue(auxiliaryStorageQueue, task)
 
+export const withWorkspacesWriteLock = <T>(task: () => Promise<T>) =>
+  enqueue(workspacesQueue, task)
+
+export const loadWorkspacesSnapshot = () =>
+  withWorkspacesWriteLock(() => loadWorkspaces())
+
 export const withGlobalStorageWriteBarrier = async <T>(
   task: () => Promise<T>
 ) => {
@@ -65,7 +71,7 @@ export const withGlobalStorageWriteBarrier = async <T>(
 export const applyWorkspacesUpdate = (
   updater: (current: Workspace[]) => Promise<Workspace[]> | Workspace[]
 ) =>
-  enqueue(workspacesQueue, async () => {
+  withWorkspacesWriteLock(async () => {
     const current = await loadWorkspaces()
     const next = await updater(current)
     if (next !== current) {

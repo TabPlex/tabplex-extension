@@ -228,6 +228,7 @@ export const STORAGE_KEYS = {
   STATE: "runtimeState",
   SWITCH_STATE: "switchState",
   WINDOW_BINDINGS: "workspaceWindowBindings",
+  WORKSPACE_TAB_WARMUP_JOBS: "workspaceTabWarmupJobs",
   PENDING_ACTION: "pendingAction",
   ONBOARDING: "onboarding",
   LOGS: "logs"

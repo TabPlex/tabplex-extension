@@ -7,6 +7,10 @@ import { applyWorkspacesUpdate } from "~lib/workspacesQueue"
 import { runWorkspaceDataOperation } from "../../workspaceController"
 import { handleWorkspacesApplyMessage } from "./workspacesApply"
 
+const busyGuard = vi.hoisted(() => ({
+  assertWorkspaceDeletionAllowed: vi.fn(async () => undefined)
+}))
+
 vi.mock("~lib/workspacesQueue", () => ({
   applyWorkspacesUpdate: vi.fn()
 }))
@@ -17,6 +21,10 @@ vi.mock("~lib/storageQueues", () => ({
 
 vi.mock("../../workspaceController", () => ({
   runWorkspaceDataOperation: vi.fn()
+}))
+
+vi.mock("../../services/workspaceBusyGuard", () => ({
+  assertWorkspaceDeletionAllowed: busyGuard.assertWorkspaceDeletionAllowed
 }))
 
 const tab = (url: string, overrides: Partial<TabSpec> = {}): TabSpec => ({
@@ -50,6 +58,7 @@ describe("workspaces-apply flat tab operations", () => {
       stored = await updater(stored)
       return stored
     })
+    busyGuard.assertWorkspaceDeletionAllowed.mockResolvedValue(undefined)
   })
 
   const apply = (op: Record<string, unknown>, preferredWindowId?: number) =>
@@ -302,6 +311,22 @@ describe("workspaces-apply flat tab operations", () => {
 
     expect(stored.map((item) => item.id)).toEqual(["keep"])
     expect(removeWorkspaceStateEntries).toHaveBeenCalledWith(["deleted"])
+  })
+
+  it("keeps a busy workspace unchanged when deletion reaches the backend", async () => {
+    stored = [workspace("target", [tab("https://target.example")])]
+    const before = structuredClone(stored)
+    busyGuard.assertWorkspaceDeletionAllowed.mockRejectedValueOnce(
+      new Error("workspace-delete-busy")
+    )
+
+    await expect(apply({ kind: "trash", id: "target" })).resolves.toEqual({
+      ok: false,
+      error: "workspaces-apply failed"
+    })
+
+    expect(stored).toEqual(before)
+    expect(removeWorkspaceStateEntries).not.toHaveBeenCalled()
   })
 
   it("moves an empty workspace to trash without permanently deleting it", async () => {

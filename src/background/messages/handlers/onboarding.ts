@@ -1,5 +1,3 @@
-import { withAuxiliaryStorageWriteLock } from "~lib/storageQueues"
-
 import { onboardingCoordinator } from "../../services/onboardingCoordinator"
 import type { BackgroundMessageHandler } from "../types"
 import { runAsyncMessage } from "./utils"
@@ -60,8 +58,7 @@ const createTransition = (
 }
 
 export const createOnboardingMessageHandler = (
-  coordinator: OnboardingCoordinator,
-  withWriteLock: typeof withAuxiliaryStorageWriteLock = (task) => task()
+  coordinator: OnboardingCoordinator
 ): BackgroundMessageHandler => {
   return (message, sendResponse) => {
     const transition = createTransition(coordinator, message)
@@ -70,19 +67,13 @@ export const createOnboardingMessageHandler = (
       return true
     }
 
-    return runAsyncMessage(
-      "onboarding-transition",
-      sendResponse,
-      () => withWriteLock(transition),
-      {
-        onSuccess: (result) => ({ ok: true, result }),
-        fallbackError: "onboarding-transition failed"
-      }
-    )
+    return runAsyncMessage("onboarding-transition", sendResponse, transition, {
+      onSuccess: (result) => ({ ok: true, result }),
+      fallbackError: "onboarding-transition failed"
+    })
   }
 }
 
 export const handleOnboardingMessage = createOnboardingMessageHandler(
-  onboardingCoordinator,
-  withAuxiliaryStorageWriteLock
+  onboardingCoordinator
 )

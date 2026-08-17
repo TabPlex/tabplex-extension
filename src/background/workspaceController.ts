@@ -36,6 +36,7 @@ import {
   assertNormalWindow,
   resolveNormalWindowId
 } from "./services/workspaceWindowTabs"
+import { workspaceOperationGate } from "./workspaceOperationGate"
 
 type WorkspaceDataOperationOptions = {
   materializeWorkspaceIds?: string[] | (() => string[])
@@ -53,8 +54,6 @@ type WorkspaceWindowScope = {
 let listenersRegistered = false
 let initializationPromise: Promise<void> | null = null
 let startupGate: Promise<unknown> = Promise.resolve()
-let maintenanceTail: Promise<void> = Promise.resolve()
-let maintenancePending = 0
 
 const isRelevantTabUpdate = (change: chrome.tabs.OnUpdatedInfo) =>
   change.status === "complete" ||
@@ -100,10 +99,6 @@ const registerControllerListeners = () => {
   })
 }
 
-const waitForMaintenance = async () => {
-  while (maintenancePending > 0) await maintenanceTail
-}
-
 export const initWorkspaceController = (gate?: Promise<unknown>) => {
   if (gate) startupGate = gate
   registerControllerListeners()
@@ -126,8 +121,9 @@ export const requestWorkspaceSwitch = async (
   options?: WorkspaceSwitchRequestOptions
 ) => {
   await initWorkspaceController()
-  await waitForMaintenance()
-  return requestCurrentWindowWorkspaceSwitch(targetId, options)
+  return workspaceOperationGate.runNormal(() =>
+    requestCurrentWindowWorkspaceSwitch(targetId, options)
+  )
 }
 
 export const abortCurrentSwitch = abortCurrentWorkspaceSwitch
@@ -138,26 +134,22 @@ export const clearCurrentWindowWorkspace = async (
   preferredWindowId?: number
 ) => {
   await initWorkspaceController()
-  await waitForMaintenance()
-  return clearCurrentWindowWorkspaceBinding(preferredWindowId)
+  return workspaceOperationGate.runNormal(() =>
+    clearCurrentWindowWorkspaceBinding(preferredWindowId)
+  )
 }
 
-export const withWorkspaceControllerMaintenance = <T>(
+export const withWorkspaceControllerMaintenance = async <T>(
   task: () => Promise<T>
 ) => {
-  maintenancePending += 1
-  const run = maintenanceTail.then(async () => {
-    await initWorkspaceController()
-    await abortCurrentWorkspaceSwitch("maintenance")
-    await flushAllWorkspaceWindowAutosaves()
-    return task()
-  })
-  maintenanceTail = run.then(
-    () => undefined,
-    () => undefined
-  )
-  return run.finally(() => {
-    maintenancePending = Math.max(0, maintenancePending - 1)
+  await initWorkspaceController()
+  return workspaceOperationGate.runExclusive({
+    beforeDrain: () =>
+      abortCurrentWorkspaceSwitch("maintenance").then(() => {}),
+    task: async () => {
+      await flushAllWorkspaceWindowAutosaves()
+      return task()
+    }
   })
 }
 
@@ -199,27 +191,28 @@ export const runWorkspaceDataOperation = async <T>(
   options?: WorkspaceDataOperationOptions
 ) => {
   await initWorkspaceController()
-  await waitForMaintenance()
-  if (
-    typeof options?.preferredWindowId === "number" &&
-    options.flushPreferredWindowAutosave !== false
-  ) {
-    await flushWorkspaceWindowAutosave(options.preferredWindowId)
-  }
+  return workspaceOperationGate.runNormal(async () => {
+    if (
+      typeof options?.preferredWindowId === "number" &&
+      options.flushPreferredWindowAutosave !== false
+    ) {
+      await flushWorkspaceWindowAutosave(options.preferredWindowId)
+    }
 
-  const result = await task()
-  const requestedIds =
-    typeof options?.materializeWorkspaceIds === "function"
-      ? options.materializeWorkspaceIds()
-      : (options?.materializeWorkspaceIds ?? [])
-  const ids = Array.from(new Set(requestedIds))
-  try {
-    await materializeChangedWorkspaces(ids, options?.preferredWindowId)
-  } catch (error) {
-    await options?.rollbackOnMaterializeFailure?.()
-    throw error
-  }
-  return result
+    const result = await task()
+    const requestedIds =
+      typeof options?.materializeWorkspaceIds === "function"
+        ? options.materializeWorkspaceIds()
+        : (options?.materializeWorkspaceIds ?? [])
+    const ids = Array.from(new Set(requestedIds))
+    try {
+      await materializeChangedWorkspaces(ids, options?.preferredWindowId)
+    } catch (error) {
+      await options?.rollbackOnMaterializeFailure?.()
+      throw error
+    }
+    return result
+  })
 }
 
 const sameBinding = (
@@ -237,22 +230,23 @@ export const runWorkspaceWindowOperation = async <T>(
   task: (scope: WorkspaceWindowScope) => Promise<T>
 ) => {
   await initWorkspaceController()
-  await waitForMaintenance()
-  const windowId = await resolveNormalWindowId(preferredWindowId)
-  const binding = await getWorkspaceWindowBinding(windowId)
-  if (!binding || binding.workspaceId !== workspaceId) {
-    throw new Error("workspace-window-operation-not-active")
-  }
-  if (binding.stale) throw new Error("workspace-window-operation-stale")
-
-  const assertStillBound = async () => {
-    await assertNormalWindow(windowId)
-    const current = await getWorkspaceWindowBinding(windowId)
-    if (!sameBinding(current, binding)) {
-      throw new Error("workspace-window-operation-binding-changed")
+  return workspaceOperationGate.runNormal(async () => {
+    const windowId = await resolveNormalWindowId(preferredWindowId)
+    const binding = await getWorkspaceWindowBinding(windowId)
+    if (!binding || binding.workspaceId !== workspaceId) {
+      throw new Error("workspace-window-operation-not-active")
     }
-  }
-  return task({ windowId, binding, assertStillBound })
+    if (binding.stale) throw new Error("workspace-window-operation-stale")
+
+    const assertStillBound = async () => {
+      await assertNormalWindow(windowId)
+      const current = await getWorkspaceWindowBinding(windowId)
+      if (!sameBinding(current, binding)) {
+        throw new Error("workspace-window-operation-binding-changed")
+      }
+    }
+    return task({ windowId, binding, assertStillBound })
+  })
 }
 
 export const captureWorkspaceWindowNow = (
@@ -274,18 +268,21 @@ export const captureWorkspaceWindowNow = (
 
 export const handleWorkspaceSwitch = async (direction: "prev" | "next") => {
   await initWorkspaceController()
-  await waitForMaintenance()
-  const windowId = await resolveNormalWindowId()
-  const binding = await getWorkspaceWindowBinding(windowId)
-  const settings = await loadSettings()
-  const workspaces = await loadWorkspaces()
-  await requestAdjacentWorkspaceSwitch({
-    direction,
-    workspaces,
-    activeWorkspaceId: binding?.workspaceId ?? null,
-    sortKey: settings.workspaceSort ?? "lastUsed",
-    requestSwitch: (workspaceId) =>
-      requestWorkspaceSwitch(workspaceId, { preferredWindowId: windowId })
+  return workspaceOperationGate.runNormal(async () => {
+    const windowId = await resolveNormalWindowId()
+    const binding = await getWorkspaceWindowBinding(windowId)
+    const settings = await loadSettings()
+    const workspaces = await loadWorkspaces()
+    await requestAdjacentWorkspaceSwitch({
+      direction,
+      workspaces,
+      activeWorkspaceId: binding?.workspaceId ?? null,
+      sortKey: settings.workspaceSort ?? "lastUsed",
+      requestSwitch: (workspaceId) =>
+        requestCurrentWindowWorkspaceSwitch(workspaceId, {
+          preferredWindowId: windowId
+        })
+    })
   })
 }
 

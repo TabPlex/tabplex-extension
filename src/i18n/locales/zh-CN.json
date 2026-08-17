@@ -302,6 +302,7 @@
       "switchBlocked": "工作区还在打开中，请稍后再切换。",
       "tabsStillLoading": "页面仍在载入，请稍候再切换。",
       "actionBlocked": "工作区正在打开，请完成后再操作。",
+      "deleteBlocked": "工作区尚未加载完成，暂时无法删除。",
       "openHomeFailed": "工作区已切换，但主页打开失败。",
       "retryOpenHome": "重试打开主页",
       "nameLabel": "重命名工作区：{{name}}",

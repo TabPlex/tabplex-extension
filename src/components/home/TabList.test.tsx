@@ -24,7 +24,9 @@ vi.mock("~components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: { children: React.ReactNode }) => children,
   Tooltip: ({ children }: { children: React.ReactNode }) => children,
   TooltipTrigger: ({ children }: { children: React.ReactNode }) => children,
-  TooltipContent: () => null
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span>{children}</span>
+  )
 }))
 
 vi.mock("~components/ui/delete", () => ({
@@ -158,5 +160,50 @@ describe("TabList keyboard and pointer alternatives", () => {
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView
     }
+  })
+
+  it("keeps webpage deletion unavailable without pinning the reveal rail", async () => {
+    const user = userEvent.setup()
+    const onRemoveTab = vi.fn()
+
+    render(
+      <TabList
+        tabCount={1}
+        showEmptyState={false}
+        tabSelectionMode={false}
+        selectionCount={0}
+        selectedTabIndexes={[]}
+        onToggleSelectionMode={vi.fn()}
+        listTabs={[{ url: "https://example.com", title: "Example" }]}
+        draggedTabIndexes={[]}
+        onRemoveTab={onRemoveTab}
+        onTabDragStart={vi.fn()}
+        onTabDragEnd={vi.fn()}
+        onToggleTabIndex={vi.fn()}
+        onOpenTab={vi.fn()}
+        interactionLocked
+      />
+    )
+
+    const deleteButton = screen.getByRole("button", {
+      name: "home.tabs.removeTabAria"
+    }) as HTMLButtonElement
+    expect(deleteButton.disabled).toBe(true)
+
+    deleteButton.focus()
+    expect(document.activeElement).not.toBe(deleteButton)
+    fireEvent.click(deleteButton)
+
+    expect(onRemoveTab).not.toHaveBeenCalled()
+    const tooltipTrigger = screen.getByRole("group", {
+      name: "home.workspace.deleteBlocked"
+    })
+
+    await user.click(tooltipTrigger)
+    expect(document.activeElement).not.toBe(tooltipTrigger)
+
+    tooltipTrigger.focus()
+    expect(document.activeElement).toBe(tooltipTrigger)
+    expect(screen.getByText("home.workspace.deleteBlocked")).toBeTruthy()
   })
 })

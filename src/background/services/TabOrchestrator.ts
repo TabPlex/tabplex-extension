@@ -747,10 +747,9 @@ const compensateFailedSwitch = async (prepared: PreparedWindowSwitch) => {
  * TabOrchestrator 负责切换工作区时的标签页迁移。
  * 先复用 URL 相同的标签，再按可配置的滚动并发准备缺失标签。
  * 始终保留或补齐当前窗口的 Home，并保留固定/内部标签页。
+ * 跨事务串行化由 workspaceSwitchService 的 coordinator 队列负责。
  */
 export class TabOrchestrator {
-  private queue: Promise<void> = Promise.resolve()
-
   async switchWorkspace(
     windowId: number,
     tabs: TabSpec[],
@@ -783,12 +782,7 @@ export class TabOrchestrator {
       }
     }
 
-    const chained = this.queue.then(task, task)
-    this.queue = chained.then(
-      () => undefined,
-      () => undefined
-    )
-    return chained
+    return task()
   }
 }
 

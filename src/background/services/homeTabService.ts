@@ -68,15 +68,17 @@ export async function dedupeAndPinHome(
     .filter(Boolean)
   if (dupIds.length) await chrome.tabs.remove(dupIds)
   if (kept?.id) {
-    try {
-      const update: chrome.tabs.UpdateProperties = {
-        pinned: true,
-        active: activate
+    const update: chrome.tabs.UpdateProperties = {}
+    if (!kept.pinned) update.pinned = true
+    if (activate && !kept.active) update.active = true
+    if (!isUpToDateHomeUrl(kept.url, homeBase)) update.url = homeUrl
+    if (Object.keys(update).length > 0) {
+      try {
+        await chrome.tabs.update(kept.id, update)
+      } catch (err) {
+        console.warn("[TabPlex] 更新 Home 标签失败", err)
+        throw err
       }
-      if (!isUpToDateHomeUrl(kept.url, homeBase)) update.url = homeUrl
-      await chrome.tabs.update(kept.id, update)
-    } catch (err) {
-      console.warn("[TabPlex] 更新 Home 标签失败", err)
     }
   } else {
     await chrome.tabs.create({
@@ -133,6 +135,15 @@ export async function openAndPinHomeInCurrentWindow(activate: boolean) {
   const windowId = await getCurrentNormalWindowId()
   if (windowId === undefined) throw new Error("current-normal-window-not-found")
   await openAndPinHomeInWindow(windowId, activate)
+}
+
+export async function openPinnedHomeAfterInstall(
+  details: Pick<chrome.runtime.InstalledDetails, "reason">,
+  openHome: (activate: boolean) => Promise<void> = openAndPinHomeInCurrentWindow
+) {
+  if (details.reason !== "install") return false
+  await openHome(false)
+  return true
 }
 
 // --- 导航拦截 ---

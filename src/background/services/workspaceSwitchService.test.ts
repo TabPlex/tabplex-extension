@@ -12,6 +12,7 @@ import {
   flushWorkspaceWindowAutosave,
   resumeWorkspaceWindowAutosave
 } from "./workspaceAutosave"
+import { reserveWorkspaceSwitchTargets } from "./workspaceBusyGuard"
 import { requestCurrentWindowWorkspaceSwitch } from "./workspaceSwitchService"
 import { WORKSPACE_TAB_LOAD_PLACEHOLDER_PATH } from "./workspaceTabLoadPlaceholder"
 import {
@@ -34,6 +35,9 @@ const warmup = vi.hoisted(() => ({
   cancelAll: vi.fn(async () => undefined),
   cancel: vi.fn(async () => undefined),
   start: vi.fn(async () => undefined)
+}))
+const busyGuard = vi.hoisted(() => ({
+  release: vi.fn()
 }))
 
 vi.mock("~core/storage", () => ({
@@ -69,6 +73,7 @@ vi.mock("~features/workspace/logic/workspaceLogic", () => ({
 }))
 
 vi.mock("~lib/workspacesQueue", () => ({
+  loadWorkspacesSnapshot: vi.fn(async () => structuredClone(state.workspaces)),
   applyWorkspacesUpdate: vi.fn(async (updater) => {
     const next = await updater(state.workspaces)
     state.workspaces = next
@@ -78,6 +83,18 @@ vi.mock("~lib/workspacesQueue", () => ({
 
 vi.mock("./TabOrchestrator", () => ({
   tabOrchestrator: orchestrator
+}))
+
+vi.mock("./workspaceBusyGuard", () => ({
+  reserveWorkspaceSwitchTargets: vi.fn(async (options) => {
+    const target = state.workspaces.find(
+      (workspace) => workspace.id === options.targetId && !workspace.trashedAt
+    )
+    if (!target) throw new Error("workspace_not_found")
+    return {
+      release: busyGuard.release
+    }
+  })
 }))
 
 vi.mock("./workspaceAutosave", () => ({
@@ -196,6 +213,32 @@ describe("workspaceSwitchService", () => {
     expect(resumeWorkspaceWindowAutosave).toHaveBeenLastCalledWith(7, {
       discardPending: true
     })
+    expect(busyGuard.release).toHaveBeenCalledOnce()
+  })
+
+  it("reserves source and target before releasing the previous warmup lock", async () => {
+    const events: string[] = []
+    vi.mocked(reserveWorkspaceSwitchTargets).mockImplementationOnce(
+      async () => {
+        events.push("reserved")
+        return { release: busyGuard.release }
+      }
+    )
+    warmup.cancel.mockImplementationOnce(async () => {
+      events.push("warmup-cancelled")
+    })
+    orchestrator.switchWorkspace.mockImplementationOnce(
+      async (_windowId, _tabs, options) => {
+        events.push("tabs-started")
+        await options.onBeforeCommit?.()
+      }
+    )
+
+    await requestCurrentWindowWorkspaceSwitch("target", {
+      preferredWindowId: 7
+    })
+
+    expect(events).toEqual(["reserved", "warmup-cancelled", "tabs-started"])
   })
 
   it("prepares lightweight shells and starts all target loads", async () => {

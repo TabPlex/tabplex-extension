@@ -28,6 +28,8 @@ import { formatDate, formatRelativeTime } from "~core/utils"
 import { describeUrl } from "~lib/common"
 import { getTabDisplayTitle } from "~shared/logic"
 
+import { LockedDeleteTooltip } from "./LockedDeleteTooltip"
+
 export type TabLocateRequest = { id: number; url: string }
 export type WorkspaceMoveTarget = { id: string; name: string }
 
@@ -205,25 +207,26 @@ export const TabList = memo(function TabList({
     return (
       <li key={key} className={wrapperClass}>
         <div className="tab-delete-zone">
-          <button
-            type="button"
-            className="tab-delete"
-            disabled={interactionLocked}
-            aria-label={t("home.tabs.removeTabAria", {
-              title: titleText
-            })}
-            title={t(
-              interactionLocked
-                ? "home.workspace.actionBlocked"
-                : "home.tabs.removeTab"
-            )}
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              void onRemoveTab(tab, index)
-            }}>
-            <DeleteIcon />
-          </button>
+          <LockedDeleteTooltip
+            locked={interactionLocked}
+            message={t("home.workspace.deleteBlocked")}>
+            <button
+              type="button"
+              className="tab-delete"
+              disabled={interactionLocked}
+              aria-label={t("home.tabs.removeTabAria", {
+                title: titleText
+              })}
+              title={interactionLocked ? undefined : t("home.tabs.removeTab")}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                if (interactionLocked) return
+                void onRemoveTab(tab, index)
+              }}>
+              <DeleteIcon />
+            </button>
+          </LockedDeleteTooltip>
         </div>
         <div
           className={itemClass}

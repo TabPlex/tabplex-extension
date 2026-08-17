@@ -293,7 +293,9 @@ const QuickSwitcher = () => {
   ])
 
   useEffect(() => {
-    void openHome(false).catch(() => {})
+    void openHome(false).catch((error) => {
+      console.warn("[TabPlex] 自动固定 Home 失败", error)
+    })
   }, [openHome])
 
   useEffect(() => {

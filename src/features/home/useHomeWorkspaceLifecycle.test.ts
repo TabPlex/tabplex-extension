@@ -59,7 +59,7 @@ describe("useHomeWorkspaceLifecycle.createEmptyWorkspace", () => {
         setSelectedId,
         setFollowActive,
         cancelPreview,
-        switchActive: false,
+        externallyLocked: false,
         showWorkspaceTrashed: vi.fn()
       })
     )
@@ -84,5 +84,39 @@ describe("useHomeWorkspaceLifecycle.createEmptyWorkspace", () => {
     expect(setQuery).toHaveBeenCalledWith("")
     expect(creation!).toEqual(created)
     expect(result.current.createPending).toBe(false)
+  })
+
+  it("blocks workspace deletion while the current window is still loading", async () => {
+    const removeWorkspace = vi.fn()
+    const { result } = renderHook(() =>
+      useHomeWorkspaceLifecycle({
+        workspaceManager: {
+          sortedWorkspaces: [],
+          createWorkspace: vi.fn(),
+          removeWorkspace,
+          switchTo: vi.fn()
+        } as any,
+        query: "",
+        setQuery: vi.fn(),
+        selectedId: "workspace-1",
+        setSelectedId: vi.fn(),
+        setFollowActive: vi.fn(),
+        cancelPreview: vi.fn(),
+        externallyLocked: true,
+        showWorkspaceTrashed: vi.fn()
+      })
+    )
+
+    await act(async () => {
+      await result.current.handleDelete({
+        id: "workspace-1",
+        name: "Research",
+        createdAt: 1,
+        tabs: []
+      })
+    })
+
+    expect(result.current.switchLocked).toBe(true)
+    expect(removeWorkspace).not.toHaveBeenCalled()
   })
 })

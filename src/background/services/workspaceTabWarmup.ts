@@ -1,4 +1,5 @@
 import { getWorkspaceWindowBinding } from "~core/storage"
+import { STORAGE_KEYS } from "~core/types"
 import {
   isSafeTabUrl,
   resolveTabUrl,
@@ -13,10 +14,11 @@ import {
 } from "./workspaceTabLoadPlaceholder"
 import { loadWorkspaceWindowTabsById } from "./workspaceWindowTabQuery"
 
-const WARMUP_STORAGE_KEY = "workspaceTabWarmupJobs"
+const WARMUP_STORAGE_KEY = STORAGE_KEYS.WORKSPACE_TAB_WARMUP_JOBS
 const WARMUP_ALARM_PREFIX = "tabplex-workspace-warmup:"
 const LOAD_TIMEOUT_MS = 10_000
 const RETRY_DELAY_MS = 1_000
+const SETTLE_RECHECK_MS = 5_000
 const NAVIGATION_CONFIRM_TIMEOUT_MS = 1_000
 const NAVIGATION_CONFIRM_POLL_MS = 50
 
@@ -324,6 +326,20 @@ const reconcilePendingTabs = (
   job.pendingTabIds = pending
 }
 
+const hasUnsettledWarmupTarget = (
+  job: WorkspaceTabWarmupJob,
+  tabsById: Map<number, chrome.tabs.Tab>
+) =>
+  getWarmupJobTabIds(job).some((tabId) => {
+    const tab = tabsById.get(tabId)
+    if (!tab || tab.windowId !== job.windowId) return false
+    return (
+      tabHasPlaceholderUrl(tab) ||
+      !!exactUrl(tab.pendingUrl) ||
+      tab.status === "loading"
+    )
+  })
+
 const persistWarmupJob = async (
   jobs: WorkspaceTabWarmupJobMap,
   job: WorkspaceTabWarmupJob
@@ -478,9 +494,23 @@ const processWarmupJob = async (windowId: number, expectedRunId?: string) => {
   }
   if (job.retryAt === undefined) await startPendingTabs(jobs, job)
 
-  if (!job.pendingTabIds.length && !job.inflightTabs.length) {
+  if (
+    !job.pendingTabIds.length &&
+    !job.inflightTabs.length &&
+    !hasUnsettledWarmupTarget(job, tabsById)
+  ) {
     await removeWarmupJob(jobs, windowId)
     return
+  }
+  if (
+    !job.pendingTabIds.length &&
+    !job.inflightTabs.length &&
+    job.retryAt === undefined
+  ) {
+    // A navigation can remain loading after its accounting slot times out.
+    // Keep a durable one-shot alarm so an MV3 suspension cannot leave the UI
+    // permanently locked after the page later settles without another event.
+    job.retryAt = now + SETTLE_RECHECK_MS
   }
   await persistWarmupJob(jobs, job)
 }

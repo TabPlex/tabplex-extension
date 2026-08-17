@@ -9,7 +9,10 @@ import {
   recordSnapshot,
   sanitizeTabSpecs
 } from "~features/workspace/logic/workspaceLogic"
-import { applyWorkspacesUpdate } from "~lib/workspacesQueue"
+import {
+  applyWorkspacesUpdate,
+  loadWorkspacesSnapshot
+} from "~lib/workspacesQueue"
 
 import { captureWorkspaceWindowTabs } from "./workspaceWindowTabs"
 
@@ -82,6 +85,29 @@ export const flushWorkspaceWindowAutosave = async (
   let changed = false
   let nextRevision = binding.tabsRevision
 
+  const snapshotWorkspaces = await loadWorkspacesSnapshot()
+  const snapshotWorkspace = snapshotWorkspaces.find(
+    (workspace) => workspace.id === binding.workspaceId && !workspace.trashedAt
+  )
+  if (!snapshotWorkspace) {
+    await updateBindingIfCurrent(windowId, binding, (current) => ({
+      ...current,
+      stale: true,
+      updatedAt: Date.now()
+    }))
+    return { status: "stale", workspaceId: binding.workspaceId }
+  }
+
+  // chrome.tabs capture can wait on navigation and must not hold the canonical
+  // workspace write queue. The commit below revalidates both revisions.
+  const liveTabs = await captureWorkspaceWindowTabs({
+    windowId,
+    previousTabs: snapshotWorkspace.tabs
+  })
+  if ((mutationGenerationByWindow.get(windowId) ?? 0) !== generation) {
+    throw new Error("workspace-autosave-tabs-changed-during-capture")
+  }
+
   const currentWorkspaces = await applyWorkspacesUpdate(async (workspaces) => {
     const workspaceIndex = workspaces.findIndex(
       (workspace) =>
@@ -93,14 +119,6 @@ export const flushWorkspaceWindowAutosave = async (
     }
 
     const workspace = workspaces[workspaceIndex]
-    const liveTabs = await captureWorkspaceWindowTabs({
-      windowId,
-      previousTabs: workspace.tabs
-    })
-    if ((mutationGenerationByWindow.get(windowId) ?? 0) !== generation) {
-      throw new Error("workspace-autosave-tabs-changed-during-capture")
-    }
-
     const latestBinding = await getWorkspaceWindowBinding(windowId)
     const workspaceRevision = workspace.tabsRevision ?? 0
     if (

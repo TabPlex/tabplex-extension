@@ -263,6 +263,7 @@ const HomeView = () => {
           query={viewState.trashQuery}
           onQueryChange={actions.setTrashQuery}
           filteredTrash={filteredTrash}
+          interactionLocked={viewState.interactionLocked}
           onEmptyTrash={data.workspaceManager.emptyTrash}
           onRestore={data.workspaceManager.restoreWorkspace}
           onDeleteForever={data.workspaceManager.permanentlyDeleteWorkspace}

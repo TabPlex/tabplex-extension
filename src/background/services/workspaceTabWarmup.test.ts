@@ -139,6 +139,7 @@ const setupChrome = (initialTabs: chrome.tabs.Tab[]) => {
 
   return {
     tabs,
+    getAlarm: () => alarms.get("tabplex-workspace-warmup:7"),
     getJob: () =>
       (
         sessionState.workspaceTabWarmupJobs as
@@ -298,8 +299,8 @@ describe("workspaceTabWarmup", () => {
     })
   })
 
-  it("cleans up timed-out accounting without stopping slow pages", async () => {
-    const { tabs, getJob } = setupChrome(
+  it("releases timed-out accounting but tracks slow pages until they finish", async () => {
+    const { tabs, getAlarm, getJob, updateTab } = setupChrome(
       [1, 2, 3].map((tabId) => createPlaceholderTab(tabId))
     )
     await startWarmup([1, 2, 3])
@@ -312,6 +313,17 @@ describe("workspaceTabWarmup", () => {
 
     expect(tabs.discard).not.toHaveBeenCalled()
     expect(tabs.update.mock.calls.map(([tabId]) => tabId)).toEqual([1, 2, 3])
+    expect(getJob()).toMatchObject({
+      pendingTabIds: [],
+      inflightTabs: [],
+      retryAt: 16_001
+    })
+    expect(getAlarm()?.when).toBe(16_001)
+
+    for (const tabId of [1, 2, 3]) {
+      updateTab(tabId, { status: "complete", pendingUrl: undefined })
+    }
+    await resumeWorkspaceTabWarmups()
     expect(getJob()).toBeUndefined()
   })
 

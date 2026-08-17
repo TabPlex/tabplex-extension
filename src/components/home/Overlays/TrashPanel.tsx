@@ -1,4 +1,4 @@
-import { useState } from "react"
+import React, { useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Button } from "~components/ui/button"
@@ -19,6 +19,8 @@ import { DEFAULT_SETTINGS } from "~core/types"
 import { formatRelativeTime } from "~core/utils"
 import { resolveWorkspaceColor } from "~core/utils/colors"
 
+import { LockedDeleteTooltip } from "../LockedDeleteTooltip"
+
 interface TrashPanelProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -27,6 +29,7 @@ interface TrashPanelProps {
   query: string
   onQueryChange: (q: string) => void
   filteredTrash: Workspace[]
+  interactionLocked: boolean
   onEmptyTrash: () => void
   onRestore: (id: string) => void
   onDeleteForever: (id: string) => void
@@ -40,6 +43,7 @@ export const TrashPanel = ({
   query,
   onQueryChange,
   filteredTrash,
+  interactionLocked,
   onEmptyTrash,
   onRestore,
   onDeleteForever
@@ -49,7 +53,7 @@ export const TrashPanel = ({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Workspace | null>(null)
-  const canEmptyTrash = filteredTrash.length > 0
+  const canEmptyTrash = filteredTrash.length > 0 && !interactionLocked
 
   const handlePanelOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -61,17 +65,19 @@ export const TrashPanel = ({
   }
 
   const handleConfirmEmpty = () => {
+    if (interactionLocked) return
     setConfirmOpen(false)
     onEmptyTrash()
   }
 
   const handleRequestDelete = (workspace: Workspace) => {
+    if (interactionLocked) return
     setDeleteTarget(workspace)
     setConfirmDeleteOpen(true)
   }
 
   const handleConfirmDelete = () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || interactionLocked) return
     onDeleteForever(deleteTarget.id)
     setConfirmDeleteOpen(false)
     setDeleteTarget(null)
@@ -104,16 +110,21 @@ export const TrashPanel = ({
               />
             </div>
             <div className="trash-header-actions">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="trash-empty-button"
-                aria-label={t("home.trash.emptyAction")}
-                onClick={() => setConfirmOpen(true)}
-                disabled={!canEmptyTrash}>
-                <DeleteIcon className="trash-action-icon" />
-                {t("home.trash.emptyAction")}
-              </Button>
+              <LockedDeleteTooltip
+                locked={interactionLocked}
+                message={t("home.workspace.deleteBlocked")}
+                triggerClassName="trash-locked-delete-tooltip-trigger">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="trash-empty-button"
+                  aria-label={t("home.trash.emptyAction")}
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={!canEmptyTrash}>
+                  <DeleteIcon className="trash-action-icon" />
+                  {t("home.trash.emptyAction")}
+                </Button>
+              </LockedDeleteTooltip>
             </div>
           </div>
 
@@ -182,13 +193,19 @@ export const TrashPanel = ({
                               onClick={() => onRestore(tag.id)}>
                               {t("home.trash.restore")}
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="trash-btn trash-btn-delete"
-                              onClick={() => handleRequestDelete(tag)}>
-                              {t("home.trash.deletePermanently")}
-                            </Button>
+                            <LockedDeleteTooltip
+                              locked={interactionLocked}
+                              message={t("home.workspace.deleteBlocked")}
+                              triggerClassName="trash-locked-delete-tooltip-trigger">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="trash-btn trash-btn-delete"
+                                disabled={interactionLocked}
+                                onClick={() => handleRequestDelete(tag)}>
+                                {t("home.trash.deletePermanently")}
+                              </Button>
+                            </LockedDeleteTooltip>
                           </div>
                         </div>
                       </li>
@@ -218,12 +235,18 @@ export const TrashPanel = ({
               onClick={() => setConfirmOpen(false)}>
               {t("home.trash.emptyConfirmCancel")}
             </Button>
-            <Button
-              variant="destructive"
-              className="trash-confirm-button trash-confirm-danger"
-              onClick={handleConfirmEmpty}>
-              {t("home.trash.emptyConfirmAction")}
-            </Button>
+            <LockedDeleteTooltip
+              locked={interactionLocked}
+              message={t("home.workspace.deleteBlocked")}
+              triggerClassName="trash-locked-delete-tooltip-trigger">
+              <Button
+                variant="destructive"
+                className="trash-confirm-button trash-confirm-danger"
+                disabled={interactionLocked}
+                onClick={handleConfirmEmpty}>
+                {t("home.trash.emptyConfirmAction")}
+              </Button>
+            </LockedDeleteTooltip>
           </div>
         </DialogContent>
       </Dialog>
@@ -250,12 +273,18 @@ export const TrashPanel = ({
               onClick={() => setConfirmDeleteOpen(false)}>
               {t("home.trash.deleteConfirmCancel")}
             </Button>
-            <Button
-              variant="destructive"
-              className="trash-confirm-button trash-confirm-danger"
-              onClick={handleConfirmDelete}>
-              {t("home.trash.deleteConfirmAction")}
-            </Button>
+            <LockedDeleteTooltip
+              locked={interactionLocked}
+              message={t("home.workspace.deleteBlocked")}
+              triggerClassName="trash-locked-delete-tooltip-trigger">
+              <Button
+                variant="destructive"
+                className="trash-confirm-button trash-confirm-danger"
+                disabled={interactionLocked}
+                onClick={handleConfirmDelete}>
+                {t("home.trash.deleteConfirmAction")}
+              </Button>
+            </LockedDeleteTooltip>
           </div>
         </DialogContent>
       </Dialog>

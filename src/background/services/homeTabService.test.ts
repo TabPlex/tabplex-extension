@@ -5,6 +5,7 @@ import {
   getCurrentNormalWindowId,
   isHomeUrl,
   openAndPinHomeInWindow,
+  openPinnedHomeAfterInstall,
   registerHomeNavigationListener
 } from "./homeTabService"
 
@@ -48,6 +49,77 @@ describe("isHomeUrl", () => {
       pinned: true,
       active: false
     })
+  })
+
+  it("does not mutate an up-to-date pinned Home during an inactive ensure", async () => {
+    const base = "chrome-extension://id/popup.html"
+    const homeUrl = `${base}?mode=home&v=1`
+    const tabs = {
+      query: vi.fn().mockResolvedValue([
+        {
+          id: 9,
+          windowId: 1,
+          url: homeUrl,
+          pinned: true,
+          active: true
+        }
+      ]),
+      update: vi.fn(),
+      remove: vi.fn(),
+      create: vi.fn()
+    }
+    ;(globalThis as any).chrome = {
+      runtime: { getManifest: () => ({ version: "1" }) },
+      tabs,
+      windows: { update: vi.fn() }
+    }
+
+    await dedupeAndPinHome(1, base, homeUrl, false)
+
+    expect(tabs.update).not.toHaveBeenCalled()
+    expect(tabs.create).not.toHaveBeenCalled()
+  })
+
+  it("repairs Home without deactivating the current tab", async () => {
+    const base = "chrome-extension://id/popup.html"
+    const homeUrl = `${base}?mode=home&v=1`
+    const tabs = {
+      query: vi.fn().mockResolvedValue([
+        {
+          id: 9,
+          windowId: 1,
+          url: homeUrl,
+          pinned: false,
+          active: true
+        }
+      ]),
+      update: vi.fn().mockResolvedValue({ id: 9 }),
+      remove: vi.fn(),
+      create: vi.fn()
+    }
+    ;(globalThis as any).chrome = {
+      runtime: { getManifest: () => ({ version: "1" }) },
+      tabs,
+      windows: { update: vi.fn() }
+    }
+
+    await dedupeAndPinHome(1, base, homeUrl, false)
+
+    expect(tabs.update).toHaveBeenCalledWith(9, { pinned: true })
+  })
+
+  it("creates a background Home only on first install", async () => {
+    const openHome = vi.fn().mockResolvedValue(undefined)
+
+    await expect(
+      openPinnedHomeAfterInstall({ reason: "install" }, openHome)
+    ).resolves.toBe(true)
+    await expect(
+      openPinnedHomeAfterInstall({ reason: "update" }, openHome)
+    ).resolves.toBe(false)
+
+    expect(openHome).toHaveBeenCalledTimes(1)
+    expect(openHome).toHaveBeenCalledWith(false)
   })
 })
 

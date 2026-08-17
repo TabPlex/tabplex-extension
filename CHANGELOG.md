@@ -2,6 +2,15 @@
 
 This project follows a release-note format based on user-visible changes.
 
+## 1.0.3 - 2026-08-16
+
+### Fixed
+
+- Keep workspace and webpage-list deletion disabled while a workspace is
+  opening, and explain the temporary lock on hover or keyboard focus.
+- Keep the toolbar quick switcher open while maintaining the pinned Home tab,
+  and create Home once during the first installation.
+
 ## 1.0.2 - 2026-08-10
 
 ### Changed

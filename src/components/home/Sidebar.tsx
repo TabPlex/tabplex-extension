@@ -1,4 +1,4 @@
-import {
+import React, {
   memo,
   useEffect,
   useMemo,
@@ -20,6 +20,7 @@ import type { WorkspaceSearchMatch } from "~features/home/logic/workspaceSearch"
 import { createLongHoverController } from "~features/home/longHover"
 import { cn } from "~lib/utils"
 
+import { LockedDeleteTooltip } from "./LockedDeleteTooltip"
 import { isSidebarDeleteReady } from "./sidebarDeleteState"
 import { SIDEBAR_LONG_HOVER_MS } from "./sidebarHoverConfig"
 
@@ -259,20 +260,29 @@ export const Sidebar = memo(function Sidebar({
                 onDragLeave={(event) => onWorkspaceDragLeave(event, tag.id)}
                 onDrop={(event) => onWorkspaceDrop(event, tag.id)}>
                 <div className="sidebar-delete-zone">
-                  <button
-                    type="button"
-                    className="sidebar-delete"
-                    aria-label={t("home.workspace.actions.moveToTrash")}
-                    title={t("home.workspace.actions.moveToTrash")}
-                    disabled={interactionLocked}
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      setHoverDeleteId(null)
-                      onDelete(tag)
-                    }}>
-                    <DeleteIcon />
-                  </button>
+                  <LockedDeleteTooltip
+                    locked={interactionLocked}
+                    message={t("home.workspace.deleteBlocked")}>
+                    <button
+                      type="button"
+                      className="sidebar-delete"
+                      aria-label={t("home.workspace.actions.moveToTrash")}
+                      disabled={interactionLocked}
+                      title={
+                        interactionLocked
+                          ? undefined
+                          : t("home.workspace.actions.moveToTrash")
+                      }
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        if (interactionLocked) return
+                        setHoverDeleteId(null)
+                        onDelete(tag)
+                      }}>
+                      <DeleteIcon />
+                    </button>
+                  </LockedDeleteTooltip>
                 </div>
                 <button
                   type="button"

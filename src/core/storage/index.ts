@@ -671,17 +671,6 @@ export const loadSettings = async (): Promise<Settings> => {
   return settings
 }
 
-let settingsWriteQueue: Promise<void> = Promise.resolve()
-
-const enqueueSettingsWrite = <T>(task: () => Promise<T>) => {
-  const run = settingsWriteQueue.then(task)
-  settingsWriteQueue = run.then(
-    () => undefined,
-    () => undefined
-  )
-  return run
-}
-
 export const splitSettingsForStorage = (settings: Settings) => {
   const devMode = settings.devMode === true
   const agentControlEnabled = settings.agentControlEnabled === true
@@ -744,7 +733,7 @@ const persistSettings = async (settings: Settings) => {
 }
 
 export const saveSettings = async (settings: Settings) =>
-  enqueueSettingsWrite(() => persistSettings(settings))
+  persistSettings(settings)
 
 export const loadWorkspaceState = async (): Promise<WorkspaceState> => {
   if (typeof chrome === "undefined" || !chrome.storage?.local) {

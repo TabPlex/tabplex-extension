@@ -1,1 +1,4 @@
-export { applyWorkspacesUpdate } from "~lib/storageQueues"
+export {
+  applyWorkspacesUpdate,
+  loadWorkspacesSnapshot
+} from "~lib/storageQueues"

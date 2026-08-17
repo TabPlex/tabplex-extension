@@ -29,7 +29,7 @@ type HomeWorkspaceLifecycleInput = {
   setSelectedId: Dispatch<SetStateAction<string | null>>
   setFollowActive: Dispatch<SetStateAction<boolean>>
   cancelPreview: () => void
-  switchActive: boolean
+  externallyLocked: boolean
   guideWorkspaceId?: string | null
   showWorkspaceTrashed: (name: string | null) => void
 }
@@ -42,7 +42,7 @@ export const useHomeWorkspaceLifecycle = ({
   setSelectedId,
   setFollowActive,
   cancelPreview,
-  switchActive,
+  externallyLocked,
   guideWorkspaceId,
   showWorkspaceTrashed
 }: HomeWorkspaceLifecycleInput) => {
@@ -64,7 +64,7 @@ export const useHomeWorkspaceLifecycle = ({
     acquireLatest: acquireLatestSwitch,
     isLatest: isLatestSwitch,
     releaseLatest: releaseLatestSwitch
-  } = useWorkspaceSwitchGuard(switchActive)
+  } = useWorkspaceSwitchGuard(externallyLocked)
 
   const showSwitchBlocked = useCallback(() => {
     showWorkspaceFeedbackToast(toast, {

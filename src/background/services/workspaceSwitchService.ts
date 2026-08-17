@@ -18,7 +18,10 @@ import {
   recordSnapshot,
   sanitizeWorkspace
 } from "~features/workspace/logic/workspaceLogic"
-import { applyWorkspacesUpdate } from "~lib/workspacesQueue"
+import {
+  applyWorkspacesUpdate,
+  loadWorkspacesSnapshot
+} from "~lib/workspacesQueue"
 
 import { tabOrchestrator } from "./TabOrchestrator"
 import {
@@ -26,6 +29,7 @@ import {
   resumeWorkspaceWindowAutosave,
   suppressWorkspaceWindowAutosave
 } from "./workspaceAutosave"
+import { reserveWorkspaceSwitchTargets } from "./workspaceBusyGuard"
 import { getWorkspaceTabLoadPlaceholderUrl } from "./workspaceTabLoadPlaceholder"
 import {
   cancelAllWorkspaceTabWarmups,
@@ -69,10 +73,18 @@ export type WorkspaceSwitchRequestOptions = {
 
 let currentSwitch: SwitchTransaction | null = null
 let switchQueue: Promise<void> = Promise.resolve()
-let recoveryPromise: Promise<boolean> | null = null
 let nextSwitchRequestId = 0
 const latestSwitchIntentByWindow = new Map<number, SwitchIntent>()
 const latestSwitchRequestIdByWindow = new Map<number, number>()
+
+const enqueueSwitchTask = <T>(task: () => Promise<T>) => {
+  const run = switchQueue.then(task, task)
+  switchQueue = run.then(
+    () => undefined,
+    () => undefined
+  )
+  return run
+}
 
 const switchAlarmName = (runId: string) => `${SWITCH_ALARM_PREFIX}${runId}`
 
@@ -249,19 +261,14 @@ const recoverSwitchJournal = async (
   }
 }
 
-export const recoverPendingWorkspaceSwitch = async () => {
-  if (recoveryPromise) return recoveryPromise
-  recoveryPromise = (async () => {
-    const journal = (await loadWorkspaceState()).switchState
-    if (!journal) return true
-    return recoverSwitchJournal(journal)
-  })()
-  try {
-    return await recoveryPromise
-  } finally {
-    recoveryPromise = null
-  }
+const recoverPendingWorkspaceSwitchWithinQueue = async () => {
+  const journal = (await loadWorkspaceState()).switchState
+  if (!journal) return true
+  return recoverSwitchJournal(journal)
 }
+
+export const recoverPendingWorkspaceSwitch = () =>
+  enqueueSwitchTask(recoverPendingWorkspaceSwitchWithinQueue)
 
 const captureSourceSnapshot = async (
   windowId: number,
@@ -300,10 +307,20 @@ const runSwitch = async (
   suppressWorkspaceWindowAutosave(windowId)
   let journal: NonNullable<WorkspaceState["switchState"]> | null = null
   let discardPendingAutosave = false
+  let releaseWorkspaceReservation: (() => void) | null = null
 
   try {
     const initialBinding = await getWorkspaceWindowBinding(windowId)
     throwIfSwitchIntentCancelled(intent)
+    const reservation = await reserveWorkspaceSwitchTargets({
+      sourceId: initialBinding?.workspaceId,
+      targetId
+    })
+    releaseWorkspaceReservation = reservation.release
+    throwIfSwitchIntentCancelled(intent)
+    await cancelWindowWarmupSafely(windowId)
+    throwIfSwitchIntentCancelled(intent)
+
     let sourceBinding = initialBinding
     if (sourceBinding && !options.skipSourceSave) {
       let result: Awaited<ReturnType<typeof flushWorkspaceWindowAutosave>>
@@ -337,7 +354,7 @@ const runSwitch = async (
     // raised by tab orchestration must not be replayed as user autosaves.
     discardPendingAutosave = true
 
-    const workspaces = await loadWorkspaces()
+    const workspaces = await loadWorkspacesSnapshot()
     throwIfSwitchIntentCancelled(intent)
     const target = workspaces.find(
       (workspace) => workspace.id === targetId && !workspace.trashedAt
@@ -473,6 +490,7 @@ const runSwitch = async (
     return { success: false, reason: message, error: message }
   } finally {
     if (currentSwitch?.intent === intent) currentSwitch = null
+    releaseWorkspaceReservation?.()
     resumeWorkspaceWindowAutosave(
       windowId,
       discardPendingAutosave ? { discardPending: true } : undefined
@@ -502,7 +520,7 @@ export const requestCurrentWindowWorkspaceSwitch = async (
   }
   latestSwitchIntentByWindow.set(windowId, intent)
 
-  const task = switchQueue.then(async () => {
+  const task = enqueueSwitchTask(async () => {
     if (
       intent.abortController.signal.aborted ||
       latestSwitchIntentByWindow.get(windowId) !== intent
@@ -510,15 +528,7 @@ export const requestCurrentWindowWorkspaceSwitch = async (
       return cancelledSwitchResult(intent)
     }
 
-    await cancelWindowWarmupSafely(windowId)
-    if (
-      intent.abortController.signal.aborted ||
-      latestSwitchIntentByWindow.get(windowId) !== intent
-    ) {
-      return cancelledSwitchResult(intent)
-    }
-
-    const recovered = await recoverPendingWorkspaceSwitch()
+    const recovered = await recoverPendingWorkspaceSwitchWithinQueue()
     if (!recovered) {
       return { success: false, reason: "recovery_required" }
     }
@@ -530,10 +540,6 @@ export const requestCurrentWindowWorkspaceSwitch = async (
     }
     return runSwitch(targetId, windowId, options, intent)
   })
-  switchQueue = task.then(
-    () => undefined,
-    () => undefined
-  )
 
   try {
     return await task
@@ -571,18 +577,21 @@ export const handleWorkspaceSwitchTimeoutAlarm = (alarmName: string) => {
 export const discardPendingWorkspaceSwitch = async (confirm: boolean) => {
   if (!confirm)
     throw new Error("workspace-switch-recovery-confirmation-required")
-  const journal = (await loadWorkspaceState()).switchState
-  if (!journal) return false
-  await saveWorkspaceSwitchState(null)
-  await clearSwitchAlarm(journal.runId)
-  return true
+  return enqueueSwitchTask(async () => {
+    const journal = (await loadWorkspaceState()).switchState
+    if (!journal) return false
+    await saveWorkspaceSwitchState(null)
+    await clearSwitchAlarm(journal.runId)
+    return true
+  })
 }
 
-export const clearCurrentWindowWorkspaceBinding = async (
+export const clearCurrentWindowWorkspaceBinding = (
   preferredWindowId?: number
-) => {
-  const windowId = await resolveNormalWindowId(preferredWindowId)
-  await cancelWindowWarmupSafely(windowId)
-  await flushWorkspaceWindowAutosave(windowId)
-  await removeWorkspaceWindowBinding(windowId)
-}
+) =>
+  enqueueSwitchTask(async () => {
+    const windowId = await resolveNormalWindowId(preferredWindowId)
+    await cancelWindowWarmupSafely(windowId)
+    await flushWorkspaceWindowAutosave(windowId)
+    await removeWorkspaceWindowBinding(windowId)
+  })

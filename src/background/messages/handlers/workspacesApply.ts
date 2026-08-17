@@ -17,6 +17,7 @@ import {
 import { removeWorkspaceStateEntries } from "~lib/storageQueues"
 import { applyWorkspacesUpdate } from "~lib/workspacesQueue"
 
+import { assertWorkspaceDeletionAllowed } from "../../services/workspaceBusyGuard"
 import { runWorkspaceDataOperation } from "../../workspaceController"
 import type { BackgroundMessageHandler } from "../types"
 import { parsePreferredWindowId } from "./preferredWindowId"
@@ -604,7 +605,8 @@ export const handleWorkspacesApplyMessage: BackgroundMessageHandler = (
             result: undefined,
             deletedWorkspaceIds: new Set()
           }
-          await applyWorkspacesUpdate((current) => {
+          await applyWorkspacesUpdate(async (current) => {
+            await assertWorkspaceDeletionAllowed(current, op)
             rollbackEntries = captureWorkspaceRollbackEntries(
               current,
               materializedWorkspaceIds

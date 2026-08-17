@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { runWorkspaceDataOperation } from "./workspaceController"
+import {
+  runWorkspaceDataOperation,
+  withWorkspaceControllerMaintenance
+} from "./workspaceController"
 
 const storage = vi.hoisted(() => ({
   getWorkspaceWindowBinding: vi.fn()
 }))
 const autosave = vi.hoisted(() => ({
+  flushAllWorkspaceWindowAutosaves: vi.fn(),
   flushWorkspaceWindowAutosave: vi.fn(),
   markOtherWorkspaceBindingsStale: vi.fn()
 }))
 const switching = vi.hoisted(() => ({
+  abortCurrentWorkspaceSwitch: vi.fn(),
   recoverPendingWorkspaceSwitch: vi.fn(),
   requestCurrentWindowWorkspaceSwitch: vi.fn()
 }))
@@ -31,14 +36,14 @@ vi.mock("./services/workspaceShortcutSwitch", () => ({
 }))
 
 vi.mock("./services/workspaceAutosave", () => ({
-  flushAllWorkspaceWindowAutosaves: vi.fn(),
+  flushAllWorkspaceWindowAutosaves: autosave.flushAllWorkspaceWindowAutosaves,
   flushWorkspaceWindowAutosave: autosave.flushWorkspaceWindowAutosave,
   markOtherWorkspaceBindingsStale: autosave.markOtherWorkspaceBindingsStale,
   noteWorkspaceWindowMutation: vi.fn()
 }))
 
 vi.mock("./services/workspaceSwitchService", () => ({
-  abortCurrentWorkspaceSwitch: vi.fn(),
+  abortCurrentWorkspaceSwitch: switching.abortCurrentWorkspaceSwitch,
   clearCurrentWindowWorkspaceBinding: vi.fn(),
   discardPendingWorkspaceSwitch: vi.fn(),
   handleWorkspaceSwitchTimeoutAlarm: vi.fn(),
@@ -89,6 +94,8 @@ describe("runWorkspaceDataOperation", () => {
       workspaceId: "current"
     })
     switching.recoverPendingWorkspaceSwitch.mockResolvedValue(true)
+    switching.abortCurrentWorkspaceSwitch.mockResolvedValue(false)
+    autosave.flushAllWorkspaceWindowAutosaves.mockResolvedValue(undefined)
     switching.requestCurrentWindowWorkspaceSwitch.mockResolvedValue({
       success: true
     })
@@ -146,5 +153,42 @@ describe("runWorkspaceDataOperation", () => {
       undefined
     )
     expect(switching.requestCurrentWindowWorkspaceSwitch).not.toHaveBeenCalled()
+  })
+
+  it("blocks new data operations while maintenance drains active work", async () => {
+    let releaseActive: () => void = () => undefined
+    const activeHold = new Promise<void>((resolve) => {
+      releaseActive = resolve
+    })
+    const events: string[] = []
+
+    const active = runWorkspaceDataOperation(async () => {
+      events.push("active-start")
+      await activeHold
+      events.push("active-end")
+    })
+    await vi.waitFor(() => expect(events).toEqual(["active-start"]))
+
+    switching.abortCurrentWorkspaceSwitch.mockImplementationOnce(async () => {
+      events.push("abort-switch")
+      releaseActive()
+      return true
+    })
+    const maintenance = withWorkspaceControllerMaintenance(async () => {
+      events.push("maintenance")
+    })
+    const queued = runWorkspaceDataOperation(async () => {
+      events.push("queued-normal")
+    })
+
+    await Promise.all([active, maintenance, queued])
+    expect(events).toEqual([
+      "active-start",
+      "abort-switch",
+      "active-end",
+      "maintenance",
+      "queued-normal"
+    ])
+    expect(autosave.flushAllWorkspaceWindowAutosaves).toHaveBeenCalledOnce()
   })
 })

@@ -8,8 +8,7 @@ import {
   loadSettings,
   loadWorkspaces,
   loadWorkspaceState,
-  migrateLegacyStorage,
-  saveSettings
+  migrateLegacyStorage
 } from "~core/storage"
 import {
   COMMAND_SHORTCUT_MAP,
@@ -66,6 +65,7 @@ import {
   getCurrentNormalWindowId,
   openAndPinHomeInCurrentWindow,
   openAndPinHomeInWindow,
+  openPinnedHomeAfterInstall,
   registerHomeNavigationListener
 } from "./services/homeTabService"
 import {
@@ -172,7 +172,7 @@ void workspaceControllerReady
   .catch((error) => console.warn("[TabPlex] 工作区控制器水合失败", error))
 
 try {
-  chrome.runtime.onInstalled.addListener(async () => {
+  chrome.runtime.onInstalled.addListener(async (details) => {
     try {
       await workspaceControllerReady
     } catch (error) {
@@ -181,14 +181,18 @@ try {
     }
     let settings = DEFAULT_SETTINGS
     try {
-      settings = await loadSettings()
       // Re-save through the split allowlist on every install/update so legacy
       // sync records cannot retain device-local Agent or developer switches.
-      await saveSettings(settings)
+      settings = await applySettingsUpdate((current) => current)
     } catch (err) {
       console.warn("[TabPlex] 初始化设置失败", err)
     }
     void applyCommandShortcuts(settings.shortcuts ?? DEFAULT_SETTINGS.shortcuts)
+    try {
+      await openPinnedHomeAfterInstall(details)
+    } catch (error) {
+      console.warn("[TabPlex] 首次安装创建 Home 失败", error)
+    }
   })
 } catch (err) {
   console.warn("[TabPlex] runtime.onInstalled 不可用", err)
@@ -269,20 +273,6 @@ if (chrome?.permissions?.onRemoved) {
         console.warn("[TabPlex] Agent 权限撤销后关闭设置失败", error)
       )
   })
-}
-
-// Also pin/open Home when clicking the toolbar icon
-try {
-  chrome.action.onClicked.addListener(async (tab) => {
-    if (!(await waitForStartupRecovery("工具栏点击"))) return
-    if (typeof tab.windowId === "number") {
-      await openAndPinHomeInWindow(tab.windowId, true)
-      return
-    }
-    await openAndPinHomeInCurrentWindow(true)
-  })
-} catch (err) {
-  console.warn("[TabPlex] 监听工具栏点击失败", err)
 }
 
 // 仅保护用户显式打开的 Home 导航，不在其他窗口自动创建 Home。

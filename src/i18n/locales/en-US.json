@@ -303,6 +303,7 @@
       "switchBlocked": "Workspace is still opening. Please wait before switching.",
       "tabsStillLoading": "Pages are still loading. Please wait before switching again.",
       "actionBlocked": "The workspace is still opening. Wait until it finishes before making changes.",
+      "deleteBlocked": "The workspace has not finished loading, so it cannot be deleted yet.",
       "openHomeFailed": "The workspace switched, but Home could not be opened.",
       "retryOpenHome": "Retry opening Home",
       "nameLabel": "Rename workspace: {{name}}",

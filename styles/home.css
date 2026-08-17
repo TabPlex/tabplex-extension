@@ -533,9 +533,34 @@
     display: none;
   }
 
-  .sidebar-item-wrapper.is-locked .sidebar-delete,
   .sidebar-item-wrapper.is-locked .sidebar-delete-zone {
-    display: none;
+    pointer-events: auto;
+  }
+
+  .locked-delete-tooltip-trigger {
+    @apply absolute inset-0 block cursor-not-allowed rounded-md;
+  }
+
+  .locked-delete-tooltip-trigger:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-inset;
+  }
+
+  .trash-locked-delete-tooltip-trigger {
+    @apply relative inline-flex;
+    inset: auto;
+  }
+
+  .trash-locked-delete-tooltip-trigger > button {
+    pointer-events: none;
+  }
+
+  .sidebar-item-wrapper.is-locked .sidebar-delete {
+    @apply cursor-not-allowed text-muted-foreground;
+    pointer-events: none;
+  }
+
+  .sidebar-item-wrapper.is-locked .sidebar-delete:hover {
+    @apply text-muted-foreground;
   }
 
   .home-content {
@@ -966,9 +991,13 @@
     display: none;
   }
 
-  .tab-item-wrapper.is-readonly .tab-delete,
-  .tab-item-wrapper.is-readonly .tab-delete-zone {
-    display: none;
+  .tab-item-wrapper.is-readonly .tab-delete {
+    @apply cursor-not-allowed text-muted-foreground;
+    pointer-events: none;
+  }
+
+  .tab-item-wrapper.is-readonly .tab-delete:hover {
+    @apply bg-transparent text-muted-foreground;
   }
 
   .tab-main {
