@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "TabPlex",
+    "description": "Chrome 和 Chrome 应用商店显示的扩展名称。"
+  },
+  "extensionDescription": {
+    "message": "本地优先的 Chrome 任务工作区：安全切换标签页，集中整理任务上下文、笔记，并恢复最近状态。",
+    "description": "Chrome 和 Chrome 应用商店显示的简短扩展说明。"
+  }
+}

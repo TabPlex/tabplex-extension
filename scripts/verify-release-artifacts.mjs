@@ -14,8 +14,15 @@ import { extname, join, relative, resolve, sep } from "node:path"
 
 const DEFAULT_ARTIFACTS = ["build/chrome-mv3-prod", "build/edge-mv3-prod"]
 const EXPECTED_EXTENSION_ID = "cgenkcelnlbjbnpmembeekfjcldfagbh"
-const RELEASE_DESCRIPTION_ENV = "TABPLEX_RELEASE_DESCRIPTION"
 const RELEASE_TAG_ENV = "TABPLEX_RELEASE_TAG"
+const EXPECTED_MANIFEST_NAME = "__MSG_extensionName__"
+const EXPECTED_MANIFEST_DESCRIPTION = "__MSG_extensionDescription__"
+const EXPECTED_DEFAULT_LOCALE = "en"
+const REQUIRED_LOCALES = ["en", "zh_CN"]
+const REQUIRED_LOCALE_MESSAGES = {
+  extensionName: 75,
+  extensionDescription: 132
+}
 const PACKAGE_VERSION = JSON.parse(
   readFileSync(resolve("package.json"), "utf8")
 ).version
@@ -97,16 +104,56 @@ const verifyManifestFile = (root, artifact, manifest, field, label) => {
   }
 }
 
-const verifyReleaseDescription = (artifact, manifest, expectedDescription) => {
-  if (!expectedDescription) return
-  if (manifest.description !== expectedDescription) {
+const readLocaleMessages = (root, artifact, locale) => {
+  const path = join(root, "_locales", locale, "messages.json")
+  if (!existsSync(path)) {
+    reportFailure(artifact, `缺少 _locales/${locale}/messages.json`)
+    return null
+  }
+  try {
+    return JSON.parse(readFileSync(path, "utf8"))
+  } catch {
+    reportFailure(artifact, `_locales/${locale}/messages.json 不是有效 JSON`)
+    return null
+  }
+}
+
+const verifyManifestLocalization = (root, artifact, manifest) => {
+  if (manifest.name !== EXPECTED_MANIFEST_NAME) {
+    reportFailure(artifact, `manifest.name 必须是 ${EXPECTED_MANIFEST_NAME}`)
+  }
+  if (manifest.description !== EXPECTED_MANIFEST_DESCRIPTION) {
     reportFailure(
       artifact,
-      `manifest.description 未使用 ${RELEASE_DESCRIPTION_ENV} 的正式商店文案`
+      `manifest.description 必须是 ${EXPECTED_MANIFEST_DESCRIPTION}`
     )
   }
-  if (/本次测试范围|测试文案/.test(manifest.description ?? "")) {
-    reportFailure(artifact, "正式商店产物仍包含本地测试范围文案")
+  if (manifest.default_locale !== EXPECTED_DEFAULT_LOCALE) {
+    reportFailure(
+      artifact,
+      `manifest.default_locale 必须是 ${EXPECTED_DEFAULT_LOCALE}`
+    )
+  }
+
+  for (const locale of REQUIRED_LOCALES) {
+    const messages = readLocaleMessages(root, artifact, locale)
+    if (!messages) continue
+    for (const [key, maxLength] of Object.entries(REQUIRED_LOCALE_MESSAGES)) {
+      const message = messages[key]?.message
+      if (typeof message !== "string" || message.trim().length === 0) {
+        reportFailure(artifact, `${locale} 缺少有效的 ${key}.message`)
+        continue
+      }
+      if (message.length > maxLength || /[\r\n]/.test(message)) {
+        reportFailure(
+          artifact,
+          `${locale} 的 ${key}.message 必须是至多 ${maxLength} 字符的单行文案`
+        )
+      }
+      if (/本次测试范围|测试文案/.test(message)) {
+        reportFailure(artifact, `${locale} 的 ${key}.message 仍包含测试文案`)
+      }
+    }
   }
 }
 
@@ -154,7 +201,7 @@ const verifyExtensionIdentity = (artifact, manifest) => {
   }
 }
 
-const verifyManifest = (root, artifact, manifest, expectedDescription) => {
+const verifyManifest = (root, artifact, manifest) => {
   if (!manifest) return
   if (manifest.manifest_version !== 3) {
     reportFailure(artifact, "只允许 Manifest V3")
@@ -166,6 +213,7 @@ const verifyManifest = (root, artifact, manifest, expectedDescription) => {
     )
   }
   verifyExtensionIdentity(artifact, manifest)
+  verifyManifestLocalization(root, artifact, manifest)
 
   const permissions = new Set(manifest.permissions ?? [])
   if (!sameSet(permissions, EXPECTED_REQUIRED_PERMISSIONS)) {
@@ -219,7 +267,6 @@ const verifyManifest = (root, artifact, manifest, expectedDescription) => {
     "page",
     "options_ui.page"
   )
-  verifyReleaseDescription(artifact, manifest, expectedDescription)
 }
 
 const verifyHtmlReferences = (root, artifact, files) => {
@@ -290,7 +337,7 @@ const verifyContent = (root, artifact, files) => {
   }
 }
 
-const verifyArtifactDirectory = (root, artifact, expectedDescription) => {
+const verifyArtifactDirectory = (root, artifact) => {
   if (!existsSync(root)) {
     reportFailure(artifact, "产物目录不存在，请先构建")
     return []
@@ -302,7 +349,7 @@ const verifyArtifactDirectory = (root, artifact, expectedDescription) => {
     }
   }
   const manifest = readManifest(root, artifact)
-  verifyManifest(root, artifact, manifest, expectedDescription)
+  verifyManifest(root, artifact, manifest)
   verifyHtmlReferences(root, artifact, files)
   verifyContent(root, artifact, files)
   return files
@@ -398,12 +445,7 @@ const compareDirectoryAndZip = (
   }
 }
 
-const verifyZipPair = (
-  directory,
-  directoryFiles,
-  zipPath,
-  expectedDescription
-) => {
+const verifyZipPair = (directory, directoryFiles, zipPath) => {
   if (!existsSync(zipPath)) return false
 
   const integrityResult = runUnzip(zipPath, ["-tqq", resolve(zipPath)])
@@ -421,11 +463,7 @@ const verifyZipPair = (
     ])
     if (!extractionResult) return true
 
-    const zipFiles = verifyArtifactDirectory(
-      extractedRoot,
-      zipPath,
-      expectedDescription
-    )
+    const zipFiles = verifyArtifactDirectory(extractedRoot, zipPath)
     if (directoryFiles.length > 0) {
       compareDirectoryAndZip(
         directory,
@@ -460,31 +498,6 @@ const parseArguments = () => {
   return { releaseMode, paths: paths.length > 0 ? paths : DEFAULT_ARTIFACTS }
 }
 
-const validateExpectedDescription = (releaseMode) => {
-  if (!releaseMode) return null
-  const description = process.env[RELEASE_DESCRIPTION_ENV]?.trim()
-  if (!description) {
-    reportFailure(
-      "release",
-      `缺少 ${RELEASE_DESCRIPTION_ENV}，拒绝生成商店发布包`
-    )
-    return null
-  }
-  if (description.length > 132 || /[\r\n]/.test(description)) {
-    reportFailure(
-      "release",
-      `${RELEASE_DESCRIPTION_ENV} 必须是 1–132 字符的单行文案`
-    )
-  }
-  if (/本次测试范围|测试文案/.test(description)) {
-    reportFailure(
-      "release",
-      `${RELEASE_DESCRIPTION_ENV} 不能使用本地测试范围文案`
-    )
-  }
-  return description
-}
-
 const validateReleaseTag = (releaseMode) => {
   if (!releaseMode) return
   const tag = process.env[RELEASE_TAG_ENV]?.trim()
@@ -506,7 +519,6 @@ const normalizeArtifactPair = (path) => {
 }
 
 const { releaseMode, paths } = parseArguments()
-const expectedDescription = validateExpectedDescription(releaseMode)
 validateReleaseTag(releaseMode)
 const pairs = new Map()
 
@@ -521,12 +533,8 @@ for (const path of paths) {
 
 let verifiedZipCount = 0
 for (const { directory, zipPath, explicitZip } of pairs.values()) {
-  const directoryFiles = verifyArtifactDirectory(
-    directory,
-    directory,
-    expectedDescription
-  )
-  if (verifyZipPair(directory, directoryFiles, zipPath, expectedDescription)) {
+  const directoryFiles = verifyArtifactDirectory(directory, directory)
+  if (verifyZipPair(directory, directoryFiles, zipPath)) {
     verifiedZipCount += 1
   } else if (releaseMode || explicitZip) {
     reportFailure(zipPath, "最终 ZIP 不存在，请先执行对应的 package 命令")

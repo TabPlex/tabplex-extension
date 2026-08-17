@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "TabPlex",
+    "description": "Extension name shown by Chrome and the Chrome Web Store."
+  },
+  "extensionDescription": {
+    "message": "Local-first Chrome workspaces for safer tab switching, organized task context, notes, and recoverable recent states.",
+    "description": "Short extension description shown by Chrome and the Chrome Web Store."
+  }
+}

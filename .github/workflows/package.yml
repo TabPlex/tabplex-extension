@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      TABPLEX_RELEASE_DESCRIPTION: "TabPlex 是本地优先、可恢复的任务上下文工作区，可在当前窗口安全切换任务标签，并保留笔记与链接。"
       TABPLEX_RELEASE_TAG: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

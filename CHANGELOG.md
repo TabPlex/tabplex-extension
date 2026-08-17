@@ -2,6 +2,13 @@
 
 This project follows a release-note format based on user-visible changes.
 
+## 1.0.4 - 2026-08-17
+
+### Added
+
+- Localize the extension name and browser/store summary for English and
+  Simplified Chinese while preserving the independent in-app language setting.
+
 ## 1.0.3 - 2026-08-16
 
 ### Fixed
