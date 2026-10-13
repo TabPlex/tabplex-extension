@@ -7,8 +7,14 @@ import {
   saveWorkspaces,
   saveWorkspaceStatePatch
 } from "~core/storage"
-import type { Settings, Workspace, WorkspaceState } from "~core/types"
+import {
+  STORAGE_KEYS,
+  type Settings,
+  type Workspace,
+  type WorkspaceState
+} from "~core/types"
 import { logWarn } from "~lib/logger"
+import { removePersistedWorkspaceNoteDrafts } from "~src/background/services/noteDraftMaintenance"
 
 let globalStorageBarrier: Promise<void> = Promise.resolve()
 
@@ -36,6 +42,38 @@ const auxiliaryStorageQueue = { current: Promise.resolve() }
 
 export const withAuxiliaryStorageWriteLock = <T>(task: () => Promise<T>) =>
   enqueue(auxiliaryStorageQueue, task)
+
+const readPendingContextRemovals = async (): Promise<string[]> => {
+  const data = await chrome.storage.local.get(
+    STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP
+  )
+  const ids = data[STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP]
+  return Array.isArray(ids)
+    ? ids.filter((id): id is string => typeof id === "string" && id.length > 0)
+    : []
+}
+
+export const scheduleWorkspaceStateRemoval = (workspaceIds: string[]) =>
+  withAuxiliaryStorageWriteLock(async () => {
+    const ids = [
+      ...new Set([...(await readPendingContextRemovals()), ...workspaceIds])
+    ]
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP]: ids
+    })
+  })
+
+export const retryPendingWorkspaceStateRemovals = async () => {
+  const pending = await withAuxiliaryStorageWriteLock(
+    readPendingContextRemovals
+  )
+  if (!pending.length) return
+  const existing = new Set(
+    (await loadWorkspaces()).map((workspace) => workspace.id)
+  )
+  const removedIds = pending.filter((id) => !existing.has(id))
+  if (removedIds.length) await removeWorkspaceStateEntries(removedIds)
+}
 
 export const withWorkspacesWriteLock = <T>(task: () => Promise<T>) =>
   enqueue(workspacesQueue, task)
@@ -100,6 +138,11 @@ export const applyWorkspaceStatePatchWithMerge = (
       const current = await loadWorkspaceState()
       const next: Partial<WorkspaceState> = { ...patch }
       if (patch.notes) {
+        const ids = new Set(
+          (await loadWorkspaces()).map((workspace) => workspace.id)
+        )
+        if (Object.keys(patch.notes).some((id) => !ids.has(id)))
+          throw new Error("workspace-note-target-not-found")
         next.notes = { ...(current.notes ?? {}), ...patch.notes }
       }
       if (patch.notePreview) {
@@ -139,6 +182,7 @@ export const removeWorkspaceStateEntries = async (workspaceIds: string[]) => {
   await enqueue(
     workspaceStateQueue,
     async () => {
+      await removePersistedWorkspaceNoteDrafts([...removingIds])
       const current = await loadWorkspaceState()
       await saveWorkspaceStatePatch({
         activeWorkspaceId:
@@ -159,6 +203,14 @@ export const removeWorkspaceStateEntries = async (workspaceIds: string[]) => {
   for (const workspaceId of removingIds) {
     await removeWorkspaceBindingsForWorkspace(workspaceId)
   }
+  await withAuxiliaryStorageWriteLock(async () => {
+    const remaining = (await readPendingContextRemovals()).filter(
+      (id) => !removingIds.has(id)
+    )
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP]: remaining
+    })
+  })
 }
 
 export const applySettingsUpdate = (

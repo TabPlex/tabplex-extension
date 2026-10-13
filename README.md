@@ -55,6 +55,10 @@ window bindings use `chrome.storage.session`, while a small set of portable
 preferences uses browser-managed `chrome.storage.sync`. Backups are written only
 when the user explicitly exports one.
 
+Unsaved note drafts use extension-page `localStorage` and can be explicitly
+recovered after reopening Home. Permanent deletion and emptying Trash also
+remove those drafts, using an `offscreen` document when Home is closed.
+
 The `unlimitedStorage` permission removes Chrome's fixed local extension-storage
 quota; it does not grant access to website content or enable network uploads.
 See the [privacy policy](./PRIVACY.md) for the complete boundary.
@@ -62,6 +66,7 @@ See the [privacy policy](./PRIVACY.md) for the complete boundary.
 ## Run locally
 
 Use Node 24 and the pnpm version declared in `package.json`.
+Production packages require Chrome or Chromium-based Edge 109 or later.
 
 ```bash
 corepack enable

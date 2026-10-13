@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   canCreatePopupWorkspace,
   clampPopupActiveIndex,
+  getDefaultSearchActionIndex,
   movePopupActiveIndex,
   resolvePopupNavigationAction
 } from "./popupNavigation"
@@ -34,5 +35,22 @@ describe("popupNavigation", () => {
       type: "create"
     })
     expect(resolvePopupNavigationAction(2, 2, false)).toBeNull()
+  })
+
+  it("defaults to create for partial matches and to the exact result otherwise", () => {
+    expect(
+      resolvePopupNavigationAction(
+        getDefaultSearchActionIndex(2, true),
+        2,
+        true
+      )
+    ).toEqual({ type: "create" })
+    expect(
+      resolvePopupNavigationAction(
+        getDefaultSearchActionIndex(2, false),
+        2,
+        false
+      )
+    ).toEqual({ type: "workspace", workspaceIndex: 0 })
   })
 })

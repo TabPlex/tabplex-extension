@@ -19,6 +19,7 @@ import { normalizeShortcutLabel, uuid } from "~core/utils"
 import { setLoggerConsoleEnabled } from "~lib/logger"
 import {
   applySettingsUpdate,
+  retryPendingWorkspaceStateRemovals,
   withAuxiliaryStorageWriteLock,
   withGlobalStorageWriteBarrier
 } from "~lib/storageQueues"
@@ -98,6 +99,14 @@ const backupRestoreRecoveryReady = recoverInterruptedBackupRestore({
     console.info("[TabPlex] 已完成启动备份事务恢复", result.status)
   }
   await withGlobalStorageWriteBarrier(() => migrateLegacyStorage())
+  try {
+    await retryPendingWorkspaceStateRemovals()
+  } catch (error) {
+    console.warn(
+      "[TabPlex] Deferred workspace context cleanup remains pending",
+      error
+    )
+  }
   return result
 })
 const startupRecoveryGate = createStartupRecoveryGate(

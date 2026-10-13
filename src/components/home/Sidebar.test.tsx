@@ -110,3 +110,92 @@ describe("Sidebar locked deletion", () => {
     expect(screen.getByText("home.workspace.deleteBlocked")).toBeTruthy()
   })
 })
+
+const renderSearchSidebar = (
+  query: string,
+  workspaces: Workspace[],
+  interactionLocked = false
+) => {
+  const onSearchCreate = vi.fn()
+  const onSwitch = vi.fn()
+  render(
+    <Sidebar
+      query={query}
+      setQuery={vi.fn()}
+      searchInputRef={{ current: null }}
+      onSearchCreate={onSearchCreate}
+      filteredWorkspaces={workspaces}
+      showEmptyState={false}
+      groupedWorkspaces={[
+        { title: "home.sidebar.group.results", items: workspaces }
+      ]}
+      searchMatchByWorkspaceId={new Map()}
+      isCreatedSort={false}
+      toggleSort={vi.fn()}
+      selectedId={null}
+      currentWorkspaceId={null}
+      dropTargetId={null}
+      settings={DEFAULT_SETTINGS}
+      draggedTabIndexes={[]}
+      interactionLocked={interactionLocked}
+      onSwitch={onSwitch}
+      onPreview={vi.fn()}
+      onSidebarLeave={vi.fn()}
+      onDelete={vi.fn()}
+      onWorkspaceDragOver={vi.fn()}
+      onWorkspaceDragLeave={vi.fn()}
+      onWorkspaceDrop={vi.fn()}
+    />
+  )
+  return { input: screen.getByRole("textbox"), onSearchCreate, onSwitch }
+}
+
+describe("Sidebar search and creation", () => {
+  afterEach(cleanup)
+  const prefix: Workspace = {
+    id: "prefix",
+    name: "Research Archive",
+    createdAt: 1,
+    tabs: []
+  }
+
+  it("offers explicit creation and defaults Enter to creating a partial match", () => {
+    const { input, onSearchCreate, onSwitch } = renderSearchSidebar(
+      " Research ",
+      [prefix]
+    )
+    fireEvent.click(screen.getByRole("button", { name: "home.command.create" }))
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(onSearchCreate.mock.calls).toEqual([["Research"], ["Research"]])
+    expect(onSwitch).not.toHaveBeenCalled()
+  })
+
+  it("switches the exact name even if a partial result precedes it", () => {
+    const exact = { ...prefix, id: "exact", name: "Research" }
+    const { input, onSearchCreate, onSwitch } = renderSearchSidebar(
+      "ＲＥＳＥＡＲＣＨ",
+      [prefix, exact]
+    )
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(onSwitch).toHaveBeenCalledWith(exact)
+    expect(onSearchCreate).not.toHaveBeenCalled()
+    expect(
+      screen.queryByRole("button", { name: "home.command.create" })
+    ).toBeNull()
+  })
+
+  it("does not submit composition or a locked create action", () => {
+    const { input, onSearchCreate } = renderSearchSidebar(
+      "Research",
+      [prefix],
+      true
+    )
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true, keyCode: 229 })
+    fireEvent.keyDown(input, { key: "Enter" })
+    const create = screen.getByRole("button", {
+      name: "home.command.create"
+    }) as HTMLButtonElement
+    expect(create.disabled).toBe(true)
+    expect(onSearchCreate).not.toHaveBeenCalled()
+  })
+})

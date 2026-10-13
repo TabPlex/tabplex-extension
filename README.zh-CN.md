@@ -50,12 +50,16 @@ TabPlex 将一个浏览器任务的标签页、标签组、笔记、关联资源
 `chrome.storage.session`；少量可迁移偏好使用浏览器管理的
 `chrome.storage.sync`。只有用户主动导出时才会写出备份文件。
 
+未保存的笔记草稿使用扩展页面的 `localStorage`，重新打开 Home 后可明确选择恢复。
+永久删除和清空回收站也会清理这些草稿；Home 关闭时使用 `offscreen` 文档完成清理。
+
 `unlimitedStorage` 权限仅移除 Chrome 对扩展本地存储的固定额度，不会授予网站
 内容访问能力，也不会启用网络上传。完整边界见[隐私政策](./PRIVACY.md)。
 
 ## 本地运行
 
 请使用 Node 24，以及 `package.json` 声明的 pnpm 版本。
+正式产物要求 Chrome 或基于 Chromium 的 Edge 109 及以上版本。
 
 ```bash
 corepack enable

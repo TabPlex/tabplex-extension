@@ -231,7 +231,8 @@ export const STORAGE_KEYS = {
   WORKSPACE_TAB_WARMUP_JOBS: "workspaceTabWarmupJobs",
   PENDING_ACTION: "pendingAction",
   ONBOARDING: "onboarding",
-  LOGS: "logs"
+  LOGS: "logs",
+  PENDING_NOTE_DRAFT_CLEANUP: "pendingNoteDraftCleanupV1"
 } as const
 
 export const DEFAULT_ACCENT_COLOR = "#0EA5E9"

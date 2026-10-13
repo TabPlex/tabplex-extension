@@ -93,7 +93,7 @@ interface WysiwygMarkdownEditorProps {
   onLinkClick?: (url: string) => void
 }
 
-export const WysiwygMarkdownEditor = memo(function WysiwygMarkdownEditor({
+const MarkdownDocumentEditor = ({
   docKey,
   value,
   onChange,
@@ -102,7 +102,7 @@ export const WysiwygMarkdownEditor = memo(function WysiwygMarkdownEditor({
   className,
   mentionTabs = [],
   onLinkClick
-}: WysiwygMarkdownEditorProps) {
+}: WysiwygMarkdownEditorProps) => {
   const { t } = useTranslation()
   const resolvedPlaceholder = placeholder ?? t("home.note.placeholder")
   const initialMarkdown = useMemo(() => normalizeMarkdown(value), [docKey])
@@ -203,4 +203,10 @@ export const WysiwygMarkdownEditor = memo(function WysiwygMarkdownEditor({
       </LexicalComposer>
     </div>
   )
+}
+
+export const WysiwygMarkdownEditor = memo(function WysiwygMarkdownEditor(
+  props: WysiwygMarkdownEditorProps
+) {
+  return <MarkdownDocumentEditor key={props.docKey} {...props} />
 })

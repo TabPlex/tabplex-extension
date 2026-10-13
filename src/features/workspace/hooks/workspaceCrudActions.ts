@@ -146,13 +146,15 @@ export const updateWorkspaceEmoji = (id: string, emoji: string | null) =>
 export const setTabExcluded = (
   workspaceId: string,
   tabIndexOrUrl: number | string,
-  excluded: boolean
+  excluded: boolean,
+  expectedTabsRevision?: number
 ) =>
   requestWorkspacesApply({
     kind: "exclude-tab",
     workspaceId,
     tabIndexOrUrl,
-    excluded
+    excluded,
+    expectedTabsRevision
   }).then(() => undefined)
 
 export const removeWorkspace = (id: string) =>

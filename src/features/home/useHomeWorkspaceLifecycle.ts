@@ -77,10 +77,20 @@ export const useHomeWorkspaceLifecycle = ({
     async (requestedName?: string, seedFromCurrentWindow?: boolean) => {
       const name = (requestedName ?? query).trim()
       if (!name) return
+      if (createPendingRef.current || !acquireExclusiveSwitch()) {
+        showSwitchBlocked()
+        return
+      }
+      createPendingRef.current = true
+      setCreatePending(true)
       try {
+        const currentWindow = await chrome.windows.getCurrent({
+          populate: false
+        })
         const result = await createWorkspace({
           activate: true,
           name,
+          preferredWindowId: currentWindow.id,
           seedFromCurrentWindow
         })
         setSelectedId(result.workspace.id)
@@ -93,9 +103,26 @@ export const useHomeWorkspaceLifecycle = ({
         }
       } catch (error) {
         console.warn("[TabPlex] Quick create failed", error)
+        showWorkspaceFeedbackToast(toast, {
+          kind: "error",
+          message: t("home.create.popup.error")
+        })
+      } finally {
+        createPendingRef.current = false
+        setCreatePending(false)
+        releaseExclusiveSwitch()
       }
     },
-    [createWorkspace, query, setQuery, setSelectedId, t]
+    [
+      acquireExclusiveSwitch,
+      createWorkspace,
+      query,
+      releaseExclusiveSwitch,
+      setQuery,
+      setSelectedId,
+      showSwitchBlocked,
+      t
+    ]
   )
 
   const createEmptyWorkspace = useCallback(async () => {

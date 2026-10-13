@@ -6,7 +6,8 @@ import {
 } from "./workspaceController"
 
 const storage = vi.hoisted(() => ({
-  getWorkspaceWindowBinding: vi.fn()
+  getWorkspaceWindowBinding: vi.fn(),
+  updateWorkspaceWindowBindings: vi.fn()
 }))
 const autosave = vi.hoisted(() => ({
   flushAllWorkspaceWindowAutosaves: vi.fn(),
@@ -21,6 +22,7 @@ const switching = vi.hoisted(() => ({
 
 vi.mock("~core/storage", () => ({
   getWorkspaceWindowBinding: storage.getWorkspaceWindowBinding,
+  updateWorkspaceWindowBindings: storage.updateWorkspaceWindowBindings,
   loadSettings: vi.fn(),
   loadWorkspaces: vi.fn(),
   removeWorkspaceWindowBinding: vi.fn()
@@ -153,6 +155,33 @@ describe("runWorkspaceDataOperation", () => {
       undefined
     )
     expect(switching.requestCurrentWindowWorkspaceSwitch).not.toHaveBeenCalled()
+  })
+
+  it("invalidates older bindings after rollback without staling a newer successful copy", async () => {
+    const binding = { workspaceId: "current", tabsRevision: 1, updatedAt: 1 }
+    const bindings = { "7": binding, "8": { ...binding, tabsRevision: 3 } }
+    let updated = bindings
+    storage.updateWorkspaceWindowBindings.mockImplementation(
+      async (updater) => {
+        updated = updater(bindings)
+        return updated
+      }
+    )
+    switching.requestCurrentWindowWorkspaceSwitch.mockResolvedValueOnce({
+      success: false,
+      reason: "failed"
+    })
+    await expect(
+      runWorkspaceDataOperation(async () => {}, {
+        materializeWorkspaceIds: ["current"],
+        preferredWindowId: 7,
+        rollbackOnMaterializeFailure: async () => [
+          { workspaceId: "current", tabsRevision: 2 }
+        ]
+      })
+    ).rejects.toThrow("failed")
+    expect(updated["7"]).toMatchObject({ stale: true })
+    expect(updated["8"]).toBe(bindings["8"])
   })
 
   it("blocks new data operations while maintenance drains active work", async () => {

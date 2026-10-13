@@ -1,9 +1,9 @@
 # Privacy Policy
 
-Last updated: 2026-08-09
+Last updated: 2026-10-13
 
 TabPlex is a local-first Chrome and Edge extension. This policy describes the
-current open-source `1.0.1` runtime.
+current open-source runtime.
 
 ## Data TabPlex handles
 
@@ -19,6 +19,11 @@ scripts into websites and does not request host permissions.
 ## Where data is stored
 
 - Workspace content and recovery data use `chrome.storage.local`.
+- Unsaved note drafts use extension-page `localStorage` so they can survive a
+  page closing or a failed background save. Drafts are kept separately for each
+  editor and removed after successful saving; restoring a draft requires an
+  explicit action. Permanent deletion and emptying Trash remove all note drafts
+  belonging to the affected workspaces, including drafts from closed editors.
 - Temporary per-window bindings use `chrome.storage.session`.
 - A small set of portable preferences uses `chrome.storage.sync`. The browser
   vendor may synchronize those preferences when browser sync is enabled; they
@@ -50,6 +55,8 @@ software you do not trust.
   state.
 - `alarms`: resume bounded recovery and maintenance work after an MV3 service
   worker stops.
+- `offscreen`: open a hidden extension document to clean up local note drafts
+  even when Home is closed.
 - `nativeMessaging` (requested at runtime): connect to the optional local Agent
   component only after the user enables it.
 

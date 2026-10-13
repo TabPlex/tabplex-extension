@@ -11,25 +11,29 @@ import {
 export const moveTabsToWorkspace = async (
   sourceId: string,
   targetId: string,
-  tabIndexes: number[]
+  tabIndexes: number[],
+  expectedTabsRevision?: number
 ) => {
   const response = await requestWorkspacesApply({
     kind: "move-tabs",
     sourceId,
     targetId,
-    tabIndexes
+    tabIndexes,
+    expectedTabsRevision
   })
   return (response.result as boolean | undefined) ?? false
 }
 
 export const removeTabFromWorkspace = (
   workspaceId: string,
-  tabIndexOrUrl: number | string
+  tabIndexOrUrl: number | string,
+  expectedTabsRevision?: number
 ) =>
   requestWorkspacesApply({
     kind: "remove-tab",
     workspaceId,
-    tabIndexOrUrl
+    tabIndexOrUrl,
+    expectedTabsRevision
   }).then(() => undefined)
 
 export const removeTabsFromWorkspace = (

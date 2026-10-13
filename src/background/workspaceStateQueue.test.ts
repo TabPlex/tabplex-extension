@@ -1,16 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import * as storageModule from "~core/storage"
+import { STORAGE_KEYS } from "~core/types"
 import { logWarn } from "~lib/logger"
 import {
   applyWorkspaceStatePatchWithMerge,
-  removeWorkspaceStateEntries
+  removeWorkspaceStateEntries,
+  retryPendingWorkspaceStateRemovals,
+  scheduleWorkspaceStateRemoval
 } from "~lib/storageQueues"
 
+import { removePersistedWorkspaceNoteDrafts } from "./services/noteDraftMaintenance"
+
 vi.mock("~core/storage", () => ({
+  loadWorkspaces: vi.fn(),
   loadWorkspaceState: vi.fn(),
   removeWorkspaceBindingsForWorkspace: vi.fn(),
   saveWorkspaceStatePatch: vi.fn()
+}))
+vi.mock("./services/noteDraftMaintenance", () => ({
+  removePersistedWorkspaceNoteDrafts: vi.fn(async () => undefined)
 }))
 
 vi.mock("~lib/logger", () => ({
@@ -26,6 +35,25 @@ describe("workspaceStateQueue", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    const metadata: Record<string, unknown> = {}
+    vi.stubGlobal("chrome", {
+      storage: {
+        local: {
+          get: vi.fn(async (key: string) => ({ [key]: metadata[key] })),
+          set: vi.fn(async (values: Record<string, unknown>) => {
+            Object.assign(metadata, values)
+          })
+        }
+      }
+    })
+    vi.mocked(storageModule.loadWorkspaces).mockResolvedValue(
+      ["w1", "w2", "keep", "deleted"].map((id) => ({
+        id,
+        name: id,
+        tabs: [],
+        createdAt: 1
+      }))
+    )
   })
 
   it("applies patch directly when merge is not needed", async () => {
@@ -174,5 +202,39 @@ describe("workspaceStateQueue", () => {
 
     expect(loadWorkspaceState).not.toHaveBeenCalled()
     expect(saveWorkspaceStatePatch).not.toHaveBeenCalled()
+  })
+
+  it("rejects a late note save for a permanently deleted workspace", async () => {
+    vi.mocked(storageModule.loadWorkspaces).mockResolvedValue([])
+    loadWorkspaceState.mockResolvedValue({ notes: {} } as any)
+    await expect(
+      applyWorkspaceStatePatchWithMerge({ notes: { deleted: "late note" } })
+    ).rejects.toThrow("workspace-note-target-not-found")
+    expect(saveWorkspaceStatePatch).not.toHaveBeenCalled()
+  })
+
+  it("retains failed cleanup work and retries it without touching a live workspace", async () => {
+    await scheduleWorkspaceStateRemoval(["deleted", "keep"])
+    vi.mocked(storageModule.loadWorkspaces).mockResolvedValue([
+      { id: "keep", name: "keep", createdAt: 1, tabs: [] }
+    ])
+    loadWorkspaceState.mockResolvedValue({
+      notes: { deleted: "old", keep: "kept" }
+    } as any)
+    vi.mocked(removePersistedWorkspaceNoteDrafts).mockRejectedValueOnce(
+      new Error("note-draft-cleanup-failed")
+    )
+    await expect(removeWorkspaceStateEntries(["deleted"])).rejects.toThrow(
+      "note-draft-cleanup-failed"
+    )
+    expect(saveWorkspaceStatePatch).not.toHaveBeenCalled()
+    await retryPendingWorkspaceStateRemovals()
+    expect(saveWorkspaceStatePatch).toHaveBeenCalledWith(
+      expect.objectContaining({ notes: { keep: "kept" } })
+    )
+    const state = await chrome.storage.local.get(
+      STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP
+    )
+    expect(state[STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP]).toEqual(["keep"])
   })
 })

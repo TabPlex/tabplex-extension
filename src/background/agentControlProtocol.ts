@@ -327,15 +327,31 @@ const parseTabIndexOrUrl = (value: unknown) => {
 const parseTabExcludedPayload = (payload: unknown) => {
   if (
     !isRecord(payload) ||
-    !hasExactKeys(payload, ["workspaceId", "tabIndexOrUrl", "excluded"]) ||
+    !hasExactKeys(
+      payload,
+      ["workspaceId", "tabIndexOrUrl", "excluded"],
+      ["expectedTabsRevision"]
+    ) ||
     typeof payload.excluded !== "boolean"
   ) {
     return INVALID_PAYLOAD
   }
   const workspaceId = parseWorkspaceId(payload.workspaceId)
   const tabIndexOrUrl = parseTabIndexOrUrl(payload.tabIndexOrUrl)
+  const expectedTabsRevision = parseTabsRevision(payload.expectedTabsRevision)
+  if (
+    (typeof tabIndexOrUrl === "number" ||
+      payload.expectedTabsRevision !== undefined) &&
+    expectedTabsRevision === null
+  )
+    return INVALID_PAYLOAD
   return workspaceId && tabIndexOrUrl !== null
-    ? { workspaceId, tabIndexOrUrl, excluded: payload.excluded }
+    ? {
+        workspaceId,
+        tabIndexOrUrl,
+        excluded: payload.excluded,
+        ...(expectedTabsRevision !== null ? { expectedTabsRevision } : {})
+      }
     : INVALID_PAYLOAD
 }
 
@@ -358,32 +374,52 @@ const parseTabIndexes = (value: unknown) => {
   return [...new Set(value as number[])]
 }
 
+const parseTabsRevision = (value: unknown) =>
+  typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null
+
 const parseRemoveWorkspaceTabsPayload = (payload: unknown) => {
   if (
     !isRecord(payload) ||
-    !hasExactKeys(payload, ["workspaceId", "tabIndexes"])
+    !hasExactKeys(payload, [
+      "workspaceId",
+      "tabIndexes",
+      "expectedTabsRevision"
+    ])
   ) {
     return INVALID_PAYLOAD
   }
   const workspaceId = parseWorkspaceId(payload.workspaceId)
   const tabIndexes = parseTabIndexes(payload.tabIndexes)
-  return workspaceId && tabIndexes
-    ? { workspaceId, tabIndexes }
+  const expectedTabsRevision = parseTabsRevision(payload.expectedTabsRevision)
+  return workspaceId && tabIndexes && expectedTabsRevision !== null
+    ? { workspaceId, tabIndexes, expectedTabsRevision }
     : INVALID_PAYLOAD
 }
 
 const parseMoveWorkspaceTabsPayload = (payload: unknown) => {
   if (
     !isRecord(payload) ||
-    !hasExactKeys(payload, ["sourceId", "targetId", "tabIndexes"])
+    !hasExactKeys(payload, [
+      "sourceId",
+      "targetId",
+      "tabIndexes",
+      "expectedTabsRevision"
+    ])
   ) {
     return INVALID_PAYLOAD
   }
   const sourceId = parseWorkspaceId(payload.sourceId)
   const targetId = parseWorkspaceId(payload.targetId)
   const tabIndexes = parseTabIndexes(payload.tabIndexes)
-  return sourceId && targetId && sourceId !== targetId && tabIndexes
-    ? { sourceId, targetId, tabIndexes }
+  const expectedTabsRevision = parseTabsRevision(payload.expectedTabsRevision)
+  return sourceId &&
+    targetId &&
+    sourceId !== targetId &&
+    tabIndexes &&
+    expectedTabsRevision !== null
+    ? { sourceId, targetId, tabIndexes, expectedTabsRevision }
     : INVALID_PAYLOAD
 }
 

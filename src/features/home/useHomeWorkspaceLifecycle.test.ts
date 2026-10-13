@@ -119,4 +119,52 @@ describe("useHomeWorkspaceLifecycle.createEmptyWorkspace", () => {
     expect(result.current.switchLocked).toBe(true)
     expect(removeWorkspace).not.toHaveBeenCalled()
   })
+
+  it("serializes repeated search creation while preserving the typed name and window", async () => {
+    let finish!: (value: unknown) => void
+    const createWorkspace = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve
+        })
+    )
+    vi.stubGlobal("chrome", {
+      windows: { getCurrent: vi.fn(async () => ({ id: 17, type: "normal" })) }
+    })
+    const { result } = renderHook(() =>
+      useHomeWorkspaceLifecycle({
+        workspaceManager: {
+          sortedWorkspaces: [],
+          createWorkspace,
+          removeWorkspace: vi.fn(),
+          switchTo: vi.fn()
+        } as any,
+        query: "  Research  ",
+        setQuery: vi.fn(),
+        selectedId: null,
+        setSelectedId: vi.fn(),
+        setFollowActive: vi.fn(),
+        cancelPreview: vi.fn(),
+        externallyLocked: false,
+        showWorkspaceTrashed: vi.fn()
+      })
+    )
+    let first!: Promise<void>
+    await act(async () => {
+      first = result.current.quickCreate(undefined, false)
+      await result.current.quickCreate(undefined, false)
+    })
+    expect(createWorkspace).toHaveBeenCalledTimes(1)
+    expect(createWorkspace).toHaveBeenCalledWith({
+      name: "Research",
+      activate: true,
+      preferredWindowId: 17,
+      seedFromCurrentWindow: false
+    })
+    await act(async () => {
+      finish({ workspace: { id: "new" }, activation: { status: "activated" } })
+      await first
+    })
+    expect(result.current.createPending).toBe(false)
+  })
 })

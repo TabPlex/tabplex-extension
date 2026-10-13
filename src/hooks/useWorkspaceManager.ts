@@ -34,7 +34,7 @@ export const useWorkspaceManager = () => {
   const trashedWorkspaces = useMemo(
     () =>
       workspaces
-        .filter((t) => t.trashedAt && (t.tabs?.length ?? 0) > 0)
+        .filter((t) => t.trashedAt)
         .sort((a, b) => (b.trashedAt ?? 0) - (a.trashedAt ?? 0)),
     [workspaces]
   )

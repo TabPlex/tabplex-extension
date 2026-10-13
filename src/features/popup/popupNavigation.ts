@@ -1,23 +1,14 @@
-import type { Workspace } from "~core/types"
-
-type NamedWorkspace = Pick<Workspace, "name">
+import { canCreateWorkspaceFromQuery } from "~lib/common"
 
 export type PopupNavigationAction =
   { type: "workspace"; workspaceIndex: number } | { type: "create" } | null
 
-const normalizeWorkspaceName = (value: string) =>
-  value.normalize("NFKC").toLocaleLowerCase().replace(/\s+/g, " ").trim()
+export const canCreatePopupWorkspace = canCreateWorkspaceFromQuery
 
-export const canCreatePopupWorkspace = (
-  workspaces: NamedWorkspace[],
-  query: string
-) => {
-  const normalizedQuery = normalizeWorkspaceName(query)
-  if (!normalizedQuery) return false
-  return !workspaces.some(
-    (workspace) => normalizeWorkspaceName(workspace.name) === normalizedQuery
-  )
-}
+export const getDefaultSearchActionIndex = (
+  workspaceCount: number,
+  canCreate: boolean
+) => (canCreate ? workspaceCount : 0)
 
 export const clampPopupActiveIndex = (
   activeIndex: number,

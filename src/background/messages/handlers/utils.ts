@@ -5,17 +5,25 @@ export const runAsyncMessage = <T>(
   options?: {
     onSuccess?: (value: T) => unknown
     fallbackError?: string
+    publicErrors?: readonly string[]
   }
 ) => {
+  const sendFailure = (err: unknown) => {
+    console.warn(`[TabPlex] message:${type} failed`, err)
+    const knownError =
+      err instanceof Error && options?.publicErrors?.includes(err.message)
+        ? err.message
+        : undefined
+    sendResponse({
+      ok: false,
+      error: knownError ?? options?.fallbackError ?? `${type} failed`
+    })
+  }
   let result: Promise<T> | T
   try {
     result = task()
   } catch (err) {
-    console.warn(`[TabPlex] message:${type} failed`, err)
-    sendResponse({
-      ok: false,
-      error: options?.fallbackError ?? `${type} failed`
-    })
+    sendFailure(err)
     return true
   }
 
@@ -27,13 +35,7 @@ export const runAsyncMessage = <T>(
       }
       sendResponse(value)
     })
-    .catch((err) => {
-      console.warn(`[TabPlex] message:${type} failed`, err)
-      sendResponse({
-        ok: false,
-        error: options?.fallbackError ?? `${type} failed`
-      })
-    })
+    .catch(sendFailure)
 
   return true
 }

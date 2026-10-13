@@ -29,6 +29,7 @@ const PACKAGE_VERSION = JSON.parse(
 
 const EXPECTED_REQUIRED_PERMISSIONS = new Set([
   "alarms",
+  "offscreen",
   "storage",
   "tabGroups",
   "tabs",

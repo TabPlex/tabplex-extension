@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { Workspace } from "~core/types"
+import { canCreateWorkspaceFromQuery } from "~lib/common"
 
 import { searchWorkspaces } from "./workspaceSearch"
 
@@ -73,5 +74,38 @@ describe("workspaceSearch", () => {
       5
     )
     expect(searchWorkspaces(many, "x".repeat(300))).toEqual([])
+  })
+
+  it("ranks the exact name before prefix, title and note matches", () => {
+    const list = [
+      workspace("prefix", "Research Archive"),
+      workspace("tab", "Other", [
+        { url: "https://example.com", title: "Research" }
+      ]),
+      workspace("exact", "Ｒｅｓｅａｒｃｈ")
+    ]
+    expect(
+      searchWorkspaces(list, " research ").map((match) => match.workspaceId)
+    ).toEqual(["exact", "prefix", "tab"])
+    expect(canCreateWorkspaceFromQuery(list, " research ")).toBe(false)
+  })
+
+  it("keeps create available when only a name fragment, tab or note matches", () => {
+    const list = [
+      workspace("prefix", "Research Archive"),
+      workspace("tab", "Other", [
+        { url: "https://example.com", title: "Research" }
+      ])
+    ]
+    expect(
+      searchWorkspaces(list, "Research", { notes: { tab: "Research" } })
+    ).toHaveLength(2)
+    expect(canCreateWorkspaceFromQuery(list, "Research")).toBe(true)
+  })
+
+  it("does not let a trashed exact match block creation", () => {
+    const list = [{ ...workspace("trash", "Research"), trashedAt: 1 }]
+    expect(searchWorkspaces(list, "Research")).toEqual([])
+    expect(canCreateWorkspaceFromQuery(list, "Research")).toBe(true)
   })
 })

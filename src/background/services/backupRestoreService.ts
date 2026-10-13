@@ -19,6 +19,7 @@ import {
 import { withGlobalStorageWriteBarrier } from "~lib/storageQueues"
 
 import { materializeBackupImportPlan } from "./backupRestoreModel"
+import { allowPersistedWorkspaceNoteDrafts } from "./noteDraftMaintenance"
 import {
   createIndexedDbRestoreJournalStore,
   type BackupRestoreJournal,
@@ -104,6 +105,7 @@ export type BackupRestoreDependencies = {
   withAgentOperation?: <T>(task: () => Promise<T>) => Promise<T>
   revokeAgentAccess?: () => Promise<void>
   clearWindowBindings?: () => Promise<void>
+  allowNoteDrafts?: (workspaceIds: string[]) => Promise<void>
   local?: BackupRestoreStorageArea
   sync?: BackupRestoreStorageArea
   journal?: RestoreJournalStore
@@ -130,6 +132,7 @@ type ResolvedDependencies = {
     BackupRestoreDependencies["clearWindowBindings"]
   >
   local: BackupRestoreStorageArea
+  allowNoteDrafts: NonNullable<BackupRestoreDependencies["allowNoteDrafts"]>
   sync: BackupRestoreStorageArea
   journal: RestoreJournalStore
   withStorageBarrier: NonNullable<
@@ -214,6 +217,8 @@ const resolveDependencies = (
         await clearWorkspaceWindowBindings()
       }),
     local: dependencies.local ?? defaultStorageArea("local"),
+    allowNoteDrafts:
+      dependencies.allowNoteDrafts ?? allowPersistedWorkspaceNoteDrafts,
     sync: dependencies.sync ?? defaultStorageArea("sync"),
     journal: dependencies.journal ?? createIndexedDbRestoreJournalStore(),
     withStorageBarrier:
@@ -576,6 +581,28 @@ const rollbackJournal = async (
   await dependencies.journal.clear()
 }
 
+const allowRestoredNoteDrafts = async (dependencies: ResolvedDependencies) => {
+  const data = await dependencies.local.get([
+    STORAGE_KEYS.WORKSPACES,
+    STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP
+  ])
+  const workspaces = data[STORAGE_KEYS.WORKSPACES]
+  const ids = Array.isArray(workspaces)
+    ? workspaces
+        .map((workspace) => workspace?.id)
+        .filter((id): id is string => typeof id === "string")
+    : []
+  await dependencies.allowNoteDrafts(ids)
+  const pending = data[STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP]
+  if (Array.isArray(pending) && pending.some((id) => ids.includes(id))) {
+    await dependencies.local.set({
+      [STORAGE_KEYS.PENDING_NOTE_DRAFT_CLEANUP]: pending.filter(
+        (id) => !ids.includes(id)
+      )
+    })
+  }
+}
+
 const reconcileJournal = async (
   journal: BackupRestoreJournal,
   dependencies: ResolvedDependencies
@@ -584,6 +611,7 @@ const reconcileJournal = async (
   if (journal.phase === "committed") {
     const current = await readCurrentJournalSnapshot(journal, dependencies)
     const digest = await snapshotDigest(current.local, current.sync)
+    await allowRestoredNoteDrafts(dependencies)
     await dependencies.journal.clear()
     return digest === journal.expectedAfterDigest
       ? ("finalized" as const)
@@ -706,6 +734,7 @@ const runRestoreTransaction = async (
 
     let cleanupPending = false
     try {
+      await allowRestoredNoteDrafts(dependencies)
       await dependencies.journal.clear()
     } catch {
       cleanupPending = true

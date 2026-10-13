@@ -147,7 +147,8 @@ const printHelp = () => {
       "Examples:",
       ...EXAMPLES.map((example) => `  ${example}`),
       "",
-      "Run getState first. Permanent delete and emptyTrash require confirm: true."
+      "Run getState first. Permanent delete and emptyTrash require confirm: true.",
+      "Indexed setTabExcluded, removeWorkspaceTabs and moveWorkspaceTabs require expectedTabsRevision from getWorkspace. Re-read the source workspace after a revision conflict."
     ].join("\n") + "\n"
   )
 }

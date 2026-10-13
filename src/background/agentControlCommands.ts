@@ -325,20 +325,23 @@ const createExecutors = (
       kind: "exclude-tab",
       workspaceId: payload.workspaceId,
       tabIndexOrUrl: payload.tabIndexOrUrl,
-      excluded: payload.excluded
+      excluded: payload.excluded,
+      expectedTabsRevision: payload.expectedTabsRevision
     }),
   removeWorkspaceTabs: (payload, context) =>
     workspaceOperation(deps, context, {
       kind: "remove-tab-indexes",
       workspaceId: payload.workspaceId,
-      tabIndexes: payload.tabIndexes
+      tabIndexes: payload.tabIndexes,
+      expectedTabsRevision: payload.expectedTabsRevision
     }),
   moveWorkspaceTabs: (payload, context) =>
     workspaceOperation(deps, context, {
       kind: "move-tabs",
       sourceId: payload.sourceId,
       targetId: payload.targetId,
-      tabIndexes: payload.tabIndexes
+      tabIndexes: payload.tabIndexes,
+      expectedTabsRevision: payload.expectedTabsRevision
     }),
   replaceWorkspaceTabs: (payload, context) =>
     workspaceOperation(deps, context, {

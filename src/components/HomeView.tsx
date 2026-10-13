@@ -112,6 +112,8 @@ const HomeView = () => {
         <Header
           createAction={createWorkspaceAction}
           onShowSettings={() => actions.setShowSettings(true)}
+          onShowTrash={() => actions.setShowTrash(true)}
+          trashCount={trashedWorkspaces.length}
           notice={viewState.notice}
         />
 
@@ -152,6 +154,7 @@ const HomeView = () => {
             currentWorkspaceId={
               data.workspaceManager.workspaceState.activeWorkspaceId ?? null
             }
+            allWorkspaces={data.workspaceManager.sortedWorkspaces}
             dropTargetId={dropTargetId}
             settings={data.workspaceManager.settings}
             draggedTabIndexes={draggedTabIndexes}
@@ -237,7 +240,8 @@ const HomeView = () => {
         <CommandPalette
           open={viewState.showCommandPalette}
           onOpenChange={actions.setShowCommandPalette}
-          workspaces={filteredWorkspaces}
+          workspaces={data.workspaceManager.sortedWorkspaces}
+          notes={data.workspaceManager.workspaceState.notes}
           currentWorkspaceId={
             data.workspaceManager.workspaceState.activeWorkspaceId ?? null
           }

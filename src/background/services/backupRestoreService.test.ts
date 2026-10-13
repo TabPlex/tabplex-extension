@@ -271,6 +271,7 @@ const setup = (
     journal,
     abortSwitch,
     clearWindowBindings,
+    allowNoteDrafts: vi.fn(async () => undefined),
     now: () => 100,
     createTransactionId: () => "transaction-1",
     faultInjector: options.checkpoint
@@ -292,6 +293,23 @@ const setup = (
 }
 
 describe("backupRestoreService", () => {
+  it("keeps committed cleanup retryable when restored draft access cannot be reset yet", async () => {
+    const { journal, local, dependencies } = setup()
+    dependencies.allowNoteDrafts.mockRejectedValueOnce(
+      new Error("note-draft-cleanup-failed")
+    )
+    await expect(
+      restoreBackupImportPlan(makePlan("replace"), dependencies)
+    ).resolves.toMatchObject({ cleanupPending: true })
+    expect(journal.current?.phase).toBe("committed")
+    expect(local.snapshot()[STORAGE_KEYS.WORKSPACES]).toEqual([
+      expect.objectContaining({ id: "imported" })
+    ])
+    await recoverInterruptedBackupRestore(dependencies)
+    expect(journal.current).toBeNull()
+    expect(dependencies.allowNoteDrafts).toHaveBeenLastCalledWith(["imported"])
+  })
+
   beforeEach(() => {
     vi.restoreAllMocks()
   })

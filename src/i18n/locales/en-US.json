@@ -373,7 +373,13 @@
       "toggleEdit": "Resume editing",
       "empty": "No content yet",
       "resizeLabel": "Resize note panel",
-      "resizeValue": "Note panel width: {{width}} pixels"
+      "resizeValue": "Note panel width: {{width}} pixels",
+      "recoveryFound": "This workspace has an unsaved note draft",
+      "recoveryDescription": "The draft is stored locally. Restoring it replaces the current note.",
+      "recoverDraft": "Restore draft",
+      "saveFailed": "Could not save note",
+      "saveFailedDescription": "Please try again later (Log ID: {{logId}})",
+      "draftStorageFailed": "Could not keep a local draft. Copy your note and keep this page open."
     },
     "contextHub": {
       "title": "Context",

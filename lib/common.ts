@@ -16,6 +16,31 @@ export const formatBytes = (value: number, decimals = 1) => {
 export const countVisibleTabs = (tabs?: TabSpec[]) =>
   (tabs ?? []).reduce((sum, tab) => (tab.pinned ? sum : sum + 1), 0)
 
+export const normalizeWorkspaceName = (value: string) =>
+  value.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim()
+
+export const findExactWorkspaceName = <
+  T extends { name: string; trashedAt?: number | null }
+>(
+  workspaces: T[],
+  query: string
+): T | undefined => {
+  const name = normalizeWorkspaceName(query)
+  return name
+    ? workspaces.find(
+        (workspace) =>
+          !workspace.trashedAt &&
+          normalizeWorkspaceName(workspace.name) === name
+      )
+    : undefined
+}
+
+export const canCreateWorkspaceFromQuery = (
+  workspaces: Array<{ name: string; trashedAt?: number | null }>,
+  query: string
+) =>
+  !!normalizeWorkspaceName(query) && !findExactWorkspaceName(workspaces, query)
+
 export const toErrorMessage = (error: unknown, fallback = "Unknown error") => {
   if (typeof error === "string") {
     const trimmed = error.trim()

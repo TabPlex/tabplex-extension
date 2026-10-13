@@ -14,10 +14,20 @@ import {
   replaceWorkspaceTabs,
   restoreWorkspaceTabsFromSnapshot
 } from "~features/workspace/logic/workspaceTabState"
-import { removeWorkspaceStateEntries } from "~lib/storageQueues"
+import {
+  removeWorkspaceStateEntries,
+  retryPendingWorkspaceStateRemovals,
+  scheduleWorkspaceStateRemoval
+} from "~lib/storageQueues"
 import { applyWorkspacesUpdate } from "~lib/workspacesQueue"
 
+import { allowPersistedWorkspaceNoteDrafts } from "../../services/noteDraftMaintenance"
 import { assertWorkspaceDeletionAllowed } from "../../services/workspaceBusyGuard"
+import {
+  captureWorkspaceRollbackEntries,
+  restoreWorkspaceRollbackEntries,
+  type WorkspaceRollbackEntry
+} from "../../services/workspaceRollback"
 import { runWorkspaceDataOperation } from "../../workspaceController"
 import type { BackgroundMessageHandler } from "../types"
 import { parsePreferredWindowId } from "./preferredWindowId"
@@ -162,33 +172,6 @@ const excludeWorkspaceTab = (
   return next
 }
 
-const removeWorkspace = (
-  current: Workspace[],
-  op: WorkspaceOp,
-  now: number,
-  context: ApplyContext
-) => {
-  const id = typeof op.id === "string" ? op.id : null
-  if (!id) throw new Error("invalid-remove")
-
-  const index = current.findIndex((item) => item.id === id)
-  if (index === -1) return current
-
-  const tabCount = getWorkspaceTabs(current[index]).length
-  if (tabCount === 0) {
-    context.deletedWorkspaceIds.add(id)
-    return current.filter((item) => item.id !== id)
-  }
-
-  const next = [...current]
-  next[index] = {
-    ...next[index],
-    trashedAt: now,
-    updatedAt: now
-  }
-  return next
-}
-
 const trashWorkspace = (current: Workspace[], op: WorkspaceOp, now: number) => {
   const id = typeof op.id === "string" ? op.id : null
   if (!id) throw new Error("invalid-trash")
@@ -234,9 +217,8 @@ const deleteWorkspace = (
 ) => {
   const id = typeof op.id === "string" ? op.id : null
   if (!id) throw new Error("invalid-delete")
-  if (current.some((item) => item.id === id)) {
-    context.deletedWorkspaceIds.add(id)
-  }
+  // A retry must finish cleanup even if the canonical record was already removed.
+  context.deletedWorkspaceIds.add(id)
   return current.filter((item) => item.id !== id)
 }
 
@@ -492,7 +474,7 @@ const updaters: Record<string, WorkspaceUpdater> = {
   recolor: recolorWorkspace,
   emoji: updateWorkspaceEmoji,
   "exclude-tab": excludeWorkspaceTab,
-  remove: removeWorkspace,
+  remove: trashWorkspace,
   trash: trashWorkspace,
   restore: restoreWorkspace,
   delete: deleteWorkspace,
@@ -520,6 +502,25 @@ const applyWorkspaceOperation = (
     throw new Error("unknown-workspaces-op")
   }
 
+  if (op.expectedTabsRevision !== undefined) {
+    const id = op.kind === "move-tabs" ? op.sourceId : op.workspaceId
+    const workspace = current.find((item) => item.id === id)
+    if (
+      !Number.isSafeInteger(op.expectedTabsRevision) ||
+      !workspace ||
+      (workspace.tabsRevision ?? 0) !== op.expectedTabsRevision
+    ) {
+      throw new Error("workspace-tabs-revision-conflict")
+    }
+  }
+  if (
+    op.kind === "exclude-tab" &&
+    typeof op.tabIndexOrUrl === "number" &&
+    op.expectedTabsRevision === undefined
+  ) {
+    throw new Error("workspace-tabs-revision-required")
+  }
+
   return update(current, op, Date.now(), context)
 }
 
@@ -538,41 +539,6 @@ const getMaterializedWorkspaceIds = (op: WorkspaceOp) => {
     return typeof op.workspaceId === "string" ? [op.workspaceId] : []
   }
   return []
-}
-
-type WorkspaceRollbackEntry = {
-  id: string
-  index: number
-  workspace: Workspace | null
-}
-
-const captureWorkspaceRollbackEntries = (
-  current: Workspace[],
-  workspaceIds: string[]
-): WorkspaceRollbackEntry[] =>
-  Array.from(new Set(workspaceIds)).map((id) => {
-    const index = current.findIndex((workspace) => workspace.id === id)
-    return {
-      id,
-      index,
-      workspace: index >= 0 ? structuredClone(current[index]) : null
-    }
-  })
-
-const restoreWorkspaceRollbackEntries = (
-  current: Workspace[],
-  entries: WorkspaceRollbackEntry[]
-) => {
-  const affectedIds = new Set(entries.map((entry) => entry.id))
-  const next = current.filter((workspace) => !affectedIds.has(workspace.id))
-  for (const entry of [...entries].sort(
-    (left, right) => left.index - right.index
-  )) {
-    if (!entry.workspace) continue
-    const insertAt = Math.min(Math.max(entry.index, 0), next.length)
-    next.splice(insertAt, 0, structuredClone(entry.workspace))
-  }
-  return next
 }
 
 export const handleWorkspacesApplyMessage: BackgroundMessageHandler = (
@@ -607,11 +573,21 @@ export const handleWorkspacesApplyMessage: BackgroundMessageHandler = (
           }
           await applyWorkspacesUpdate(async (current) => {
             await assertWorkspaceDeletionAllowed(current, op)
+            const next = applyWorkspaceOperation(current, op, context)
+            if (context.deletedWorkspaceIds.size)
+              await scheduleWorkspaceStateRemoval([
+                ...context.deletedWorkspaceIds
+              ])
+            if (op.kind === "create" && context.result) {
+              await allowPersistedWorkspaceNoteDrafts([
+                (context.result as Workspace).id
+              ])
+            }
             rollbackEntries = captureWorkspaceRollbackEntries(
               current,
+              next,
               materializedWorkspaceIds
             )
-            const next = applyWorkspaceOperation(current, op, context)
             for (const workspaceId of materializedWorkspaceIds) {
               if (
                 current.find((workspace) => workspace.id === workspaceId) !==
@@ -625,6 +601,8 @@ export const handleWorkspacesApplyMessage: BackgroundMessageHandler = (
           if (context.deletedWorkspaceIds.size > 0) {
             await removeWorkspaceStateEntries([...context.deletedWorkspaceIds])
           }
+          if (op.kind === "empty-trash")
+            await retryPendingWorkspaceStateRemovals()
           return context.result
         },
         {
@@ -636,15 +614,40 @@ export const handleWorkspacesApplyMessage: BackgroundMessageHandler = (
           flushPreferredWindowAutosave: op.kind !== "create",
           rollbackOnMaterializeFailure: async () => {
             if (!rollbackEntries.length) return
-            await applyWorkspacesUpdate((current) =>
-              restoreWorkspaceRollbackEntries(current, rollbackEntries)
-            )
+            let rolledBack: Array<{
+              workspaceId: string
+              tabsRevision: number
+            }> = []
+            await applyWorkspacesUpdate((current) => {
+              const restored = restoreWorkspaceRollbackEntries(
+                current,
+                rollbackEntries
+              )
+              if (restored !== current) {
+                const ids = new Set(
+                  rollbackEntries.map(({ before }) => before.id)
+                )
+                rolledBack = restored
+                  .filter((workspace) => ids.has(workspace.id))
+                  .map((workspace) => ({
+                    workspaceId: workspace.id,
+                    tabsRevision: workspace.tabsRevision ?? 0
+                  }))
+              }
+              return restored
+            })
+            return rolledBack
           }
         }
       )
     },
     {
       onSuccess: (result) => ({ ok: true, result }),
+      publicErrors: [
+        "workspace-tabs-revision-conflict",
+        "workspace-tabs-revision-required",
+        "note-draft-cleanup-failed"
+      ],
       fallbackError: "workspaces-apply failed"
     }
   )

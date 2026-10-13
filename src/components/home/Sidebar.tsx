@@ -18,6 +18,10 @@ import { formatDate, formatRelativeTime } from "~core/utils"
 import { resolveWorkspaceColor } from "~core/utils/colors"
 import type { WorkspaceSearchMatch } from "~features/home/logic/workspaceSearch"
 import { createLongHoverController } from "~features/home/longHover"
+import {
+  canCreateWorkspaceFromQuery,
+  findExactWorkspaceName
+} from "~lib/common"
 import { cn } from "~lib/utils"
 
 import { LockedDeleteTooltip } from "./LockedDeleteTooltip"
@@ -39,6 +43,7 @@ interface SidebarProps {
   searchInputRef: RefObject<HTMLInputElement>
   onSearchCreate: (name: string) => void
   filteredWorkspaces: Workspace[]
+  allWorkspaces?: Workspace[]
   showEmptyState: boolean
   groupedWorkspaces: SidebarGroup[]
   searchMatchByWorkspaceId: Map<string, WorkspaceSearchMatch>
@@ -65,6 +70,7 @@ export const Sidebar = memo(function Sidebar({
   searchInputRef,
   onSearchCreate,
   filteredWorkspaces,
+  allWorkspaces = filteredWorkspaces,
   showEmptyState,
   groupedWorkspaces,
   searchMatchByWorkspaceId,
@@ -90,6 +96,8 @@ export const Sidebar = memo(function Sidebar({
     typeof createLongHoverController
   > | null>(null)
   const isDragging = draggedTabIndexes.length > 0
+  const exactMatch = findExactWorkspaceName(allWorkspaces, query)
+  const canCreate = canCreateWorkspaceFromQuery(allWorkspaces, query)
 
   if (!longHoverRef.current) {
     longHoverRef.current = createLongHoverController({
@@ -174,11 +182,11 @@ export const Sidebar = memo(function Sidebar({
                 return
               }
               e.preventDefault()
-              const firstMatch = filteredWorkspaces[0]
-              if (firstMatch) {
-                if (!interactionLocked) onPreview(firstMatch)
-                if (firstMatch.id !== currentWorkspaceId) {
-                  onSwitch(firstMatch)
+              if (interactionLocked) return
+              if (exactMatch) {
+                onPreview(exactMatch)
+                if (exactMatch.id !== currentWorkspaceId) {
+                  onSwitch(exactMatch)
                 }
                 return
               }
@@ -187,6 +195,18 @@ export const Sidebar = memo(function Sidebar({
             ref={searchInputRef}
           />
         </div>
+        {canCreate ? (
+          <button
+            type="button"
+            className="sidebar-create-option"
+            disabled={interactionLocked}
+            onClick={() => onSearchCreate(query.trim())}>
+            <span>{t("home.command.create", { name: query.trim() })}</span>
+            <span className="sidebar-create-hint" aria-hidden="true">
+              ↵
+            </span>
+          </button>
+        ) : null}
       </div>
       {filteredWorkspaces.length === 0 ? (
         showEmptyState ? (

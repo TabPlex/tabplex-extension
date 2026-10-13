@@ -317,6 +317,18 @@
     @apply space-y-2.5;
   }
 
+  .sidebar-create-option {
+    @apply flex min-h-10 w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-primary-readable transition-colors hover:bg-muted/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .sidebar-create-option > span:first-child {
+    @apply min-w-0 truncate;
+  }
+
+  .sidebar-create-hint {
+    @apply shrink-0 text-xs text-muted-foreground;
+  }
+
   .sidebar-search {
     @apply relative flex items-center rounded-xl transition-colors;
   }

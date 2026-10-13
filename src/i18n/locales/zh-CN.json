@@ -371,7 +371,13 @@
       "toggleEdit": "恢复编辑",
       "empty": "暂无内容",
       "resizeLabel": "调整笔记栏宽度",
-      "resizeValue": "笔记栏宽度 {{width}} 像素"
+      "resizeValue": "笔记栏宽度 {{width}} 像素",
+      "recoveryFound": "该工作区有未保存的笔记草稿",
+      "recoveryDescription": "草稿保存在本机。恢复会替换当前笔记。",
+      "recoverDraft": "恢复草稿",
+      "saveFailed": "笔记保存失败",
+      "saveFailedDescription": "请稍后重试 (Log ID: {{logId}})",
+      "draftStorageFailed": "无法在本机保留草稿，请先复制笔记并保持页面打开。"
     },
     "contextHub": {
       "title": "上下文",

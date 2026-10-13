@@ -88,12 +88,21 @@ export const useSelectedWorkspaceActions = ({
         return
       }
       try {
-        await removeTabFromWorkspace(selectedId, index)
+        await removeTabFromWorkspace(
+          selectedId,
+          index,
+          selectedWorkspace?.tabsRevision ?? 0
+        )
       } catch (error) {
         console.warn("[TabPlex] Failed to remove tab", error)
       }
     },
-    [interactionLocked, removeTabFromWorkspace, selectedId]
+    [
+      interactionLocked,
+      removeTabFromWorkspace,
+      selectedId,
+      selectedWorkspace?.tabsRevision
+    ]
   )
 
   return {

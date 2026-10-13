@@ -2,7 +2,8 @@ import {
   getWorkspaceWindowBinding,
   loadSettings,
   loadWorkspaces,
-  removeWorkspaceWindowBinding
+  removeWorkspaceWindowBinding,
+  updateWorkspaceWindowBindings
 } from "~core/storage"
 import type { WorkspaceWindowBinding } from "~core/types"
 import { resolveTabUrl } from "~core/utils"
@@ -42,7 +43,10 @@ type WorkspaceDataOperationOptions = {
   materializeWorkspaceIds?: string[] | (() => string[])
   preferredWindowId?: number
   flushPreferredWindowAutosave?: boolean
-  rollbackOnMaterializeFailure?: () => Promise<void>
+  rollbackOnMaterializeFailure?: () => Promise<void | Array<{
+    workspaceId: string
+    tabsRevision: number
+  }>>
 }
 
 type WorkspaceWindowScope = {
@@ -186,6 +190,31 @@ const materializeChangedWorkspaces = async (
   }
 }
 
+const invalidateRolledBackBindings = async (
+  revisions: Array<{ workspaceId: string; tabsRevision: number }>
+) => {
+  if (!revisions.length) return
+  const byId = new Map(
+    revisions.map((entry) => [entry.workspaceId, entry.tabsRevision])
+  )
+  await updateWorkspaceWindowBindings((bindings) => {
+    let changed = false
+    const next = { ...bindings }
+    for (const [key, binding] of Object.entries(bindings)) {
+      const revision = byId.get(binding.workspaceId)
+      if (
+        revision === undefined ||
+        binding.tabsRevision >= revision ||
+        binding.stale
+      )
+        continue
+      changed = true
+      next[key] = { ...binding, stale: true, updatedAt: Date.now() }
+    }
+    return changed ? next : bindings
+  })
+}
+
 export const runWorkspaceDataOperation = async <T>(
   task: () => Promise<T>,
   options?: WorkspaceDataOperationOptions
@@ -208,7 +237,8 @@ export const runWorkspaceDataOperation = async <T>(
     try {
       await materializeChangedWorkspaces(ids, options?.preferredWindowId)
     } catch (error) {
-      await options?.rollbackOnMaterializeFailure?.()
+      const rolledBack = await options?.rollbackOnMaterializeFailure?.()
+      if (rolledBack) await invalidateRolledBackBindings(rolledBack)
       throw error
     }
     return result

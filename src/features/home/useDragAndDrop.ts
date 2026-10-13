@@ -113,7 +113,7 @@ export const useDragAndDrop = (
     setDropTargetId(null)
     lastSelectedTabRef.current = null
     dragSourceRef.current = null
-  }, [selectedTag?.id])
+  }, [selectedTag?.id, selectedTag?.tabsRevision])
 
   const clearSelectionState = useCallback(() => {
     setSelectedTabIndexes([])
@@ -176,7 +176,8 @@ export const useDragAndDrop = (
         const success = await moveTabsToWorkspace(
           selectedTag.id,
           targetId,
-          sortedIndexes
+          sortedIndexes,
+          selectedTag.tabsRevision ?? 0
         )
         if (success) {
           showFeedback({

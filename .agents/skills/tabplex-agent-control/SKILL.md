@@ -57,12 +57,11 @@ pnpm agent -- openWorkspaceTab '{"workspaceId":"<id>","tab":{"url":"https://exam
 
 - `setWorkspaceColor`: `{"workspaceId":"<id>","color":"#0EA5E9"}`，清除颜色使用 `null`。
 - `setWorkspaceEmoji`: `{"workspaceId":"<id>","emoji":"🧠"}`，清除图标使用 `null`。
-- `setWorkspaceExcluded`: `{"workspaceId":"<id>","excluded":true}`。
 - `trashWorkspace` / `restoreWorkspace` / `createWorkspaceSnapshot`: `{"workspaceId":"<id>"}`。
 - `restoreWorkspaceSnapshot`: `{"workspaceId":"<id>","snapshotId":"<id>"}`。
-- `setTabExcluded`: `{"workspaceId":"<id>","tabIndexOrUrl":0,"excluded":true}`。
-- `removeWorkspaceTabs`: `{"workspaceId":"<id>","tabIndexes":[0,1]}`。
-- `moveWorkspaceTabs`: `{"sourceId":"<id>","targetId":"<id>","tabIndexes":[0,1]}`。
+- `setTabExcluded`: `{"workspaceId":"<id>","tabIndexOrUrl":0,"excluded":true,"expectedTabsRevision":<revision>}`；按精确 URL 定位时可省略版本。
+- `removeWorkspaceTabs`: `{"workspaceId":"<id>","tabIndexes":[0,1],"expectedTabsRevision":<revision>}`。
+- `moveWorkspaceTabs`: `{"sourceId":"<id>","targetId":"<id>","tabIndexes":[0,1],"expectedTabsRevision":<source-revision>}`。
 - `replaceWorkspaceTabs`: `{"workspaceId":"<id>","tabs":[{"url":"https://example.com"}]}`。
 - `updateSetting`: key 仅支持 `theme`、`language`、`accentColor`、`workspaceSort`。
 - `openHome`、`openSettings`、`openShortcuts` 不需要 payload。
@@ -72,5 +71,6 @@ pnpm agent -- openWorkspaceTab '{"workspaceId":"<id>","tab":{"url":"https://exam
 - 用户没有明确要求时，优先 `trashWorkspace`，不要永久删除。
 - `deleteWorkspace` 必须传 `{"workspaceId":"<id>","confirm":true}`；`emptyTrash` 必须传 `{"confirm":true}`。
 - 修改前使用 `getState` 或 `getWorkspace` 核对 ID，修改后再次读取验证结果。
+- 按索引排除、删除或移动标签前通过 `getWorkspace` 读取源工作区，并将该次读取的 `tabsRevision` 作为 `expectedTabsRevision` 原样传入；冲突后重新读取和核对标签，不复用旧索引。
 - 不通过 Agent 命令修改 Agent 开关、开发者开关、备份恢复或浏览器快捷键。
 - CLI 返回失败时报告原始错误码；不要绕过校验直接改存储。

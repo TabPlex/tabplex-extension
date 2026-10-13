@@ -19,6 +19,89 @@ const request = (
 })
 
 describe("agent control protocol", () => {
+  it("requires a revision for numeric exclusions while retaining exact URL requests", () => {
+    for (const revision of [
+      undefined,
+      null,
+      -1,
+      1.5,
+      "2",
+      Number.MAX_SAFE_INTEGER + 1
+    ]) {
+      expect(
+        parseAgentCommandRequest(
+          request("setTabExcluded", {
+            workspaceId: "source",
+            tabIndexOrUrl: 1,
+            excluded: true,
+            ...(revision === undefined
+              ? {}
+              : { expectedTabsRevision: revision })
+          })
+        )
+      ).toEqual({ ok: false, error: "invalid-agent-request" })
+    }
+    expect(
+      parseAgentCommandRequest(
+        request("setTabExcluded", {
+          workspaceId: "source",
+          tabIndexOrUrl: 1,
+          excluded: true,
+          expectedTabsRevision: 0
+        })
+      )
+    ).toMatchObject({
+      ok: true,
+      request: { payload: { expectedTabsRevision: 0 } }
+    })
+    expect(
+      parseAgentCommandRequest(
+        request("setTabExcluded", {
+          workspaceId: "source",
+          tabIndexOrUrl: "https://b.example",
+          excluded: true
+        })
+      )
+    ).toMatchObject({ ok: true })
+  })
+
+  it.each(["removeWorkspaceTabs", "moveWorkspaceTabs"] as const)(
+    "%s requires a valid source revision",
+    (command) => {
+      const payload =
+        command === "removeWorkspaceTabs"
+          ? { workspaceId: "source", tabIndexes: [1] }
+          : { sourceId: "source", targetId: "target", tabIndexes: [1] }
+      for (const revision of [
+        undefined,
+        null,
+        -1,
+        1.5,
+        "1",
+        Number.MAX_SAFE_INTEGER + 1
+      ]) {
+        expect(
+          parseAgentCommandRequest(
+            request(command, {
+              ...payload,
+              ...(revision === undefined
+                ? {}
+                : { expectedTabsRevision: revision })
+            })
+          )
+        ).toEqual({ ok: false, error: "invalid-agent-request" })
+      }
+      expect(
+        parseAgentCommandRequest(
+          request(command, { ...payload, expectedTabsRevision: 0 })
+        )
+      ).toMatchObject({
+        ok: true,
+        request: { payload: { expectedTabsRevision: 0 } }
+      })
+    }
+  )
+
   it("normalizes a strictly shaped native request", () => {
     expect(
       parseAgentCommandRequest(
@@ -158,16 +241,19 @@ describe("agent control protocol", () => {
       setTabExcluded: {
         workspaceId: "workspace-1",
         tabIndexOrUrl: 0,
-        excluded: true
+        excluded: true,
+        expectedTabsRevision: 0
       },
       removeWorkspaceTabs: {
         workspaceId: "workspace-1",
-        tabIndexes: [0]
+        tabIndexes: [0],
+        expectedTabsRevision: 0
       },
       moveWorkspaceTabs: {
         sourceId: "workspace-1",
         targetId: "workspace-2",
-        tabIndexes: [0]
+        tabIndexes: [0],
+        expectedTabsRevision: 0
       },
       replaceWorkspaceTabs: { workspaceId: "workspace-1", tabs: [] },
       createWorkspaceSnapshot: { workspaceId: "workspace-1" },

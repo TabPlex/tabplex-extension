@@ -1,4 +1,5 @@
 import type { Workspace, WorkspaceState } from "~core/types"
+import { normalizeWorkspaceName } from "~lib/common"
 
 type WorkspaceSearchMatchKind = "workspace" | "tab" | "note"
 
@@ -23,8 +24,7 @@ type SearchContext = Pick<WorkspaceState, "notes">
 const MAX_QUERY_LENGTH = 256
 const MAX_HINT_LENGTH = 96
 
-const normalizeSearchText = (value: string) =>
-  value.normalize("NFKC").toLocaleLowerCase().replace(/\s+/g, " ").trim()
+const normalizeSearchText = normalizeWorkspaceName
 
 const safeUrlSearchText = (url: string) => {
   try {
@@ -80,6 +80,9 @@ const fieldsForWorkspace = (
 
 const scoreField = (field: SearchField, tokens: string[]) => {
   if (!tokens.every((token) => field.searchText.includes(token))) return 0
+  if (field.kind === "workspace" && field.searchText === tokens.join(" ")) {
+    return 1000
+  }
   const startsWithBonus = field.searchText.startsWith(tokens[0]) ? 20 : 0
   return field.weight + startsWithBonus
 }
@@ -126,6 +129,7 @@ export const searchWorkspaces = (
   const maxResults = Math.max(1, options.maxResults ?? workspaces.length)
 
   return workspaces
+    .filter((workspace) => !workspace.trashedAt)
     .map((workspace, originalIndex) => ({
       originalIndex,
       match: matchWorkspace(workspace, tokens, normalizedQuery, context)

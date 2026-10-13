@@ -10,12 +10,16 @@ import { UserMenu } from "./UserMenu"
 interface HeaderProps {
   createAction: ReactNode
   onShowSettings: () => void
+  onShowTrash: () => void
+  trashCount: number
   notice: HomeNotice
 }
 
 export const Header = memo(function Header({
   createAction,
   onShowSettings,
+  onShowTrash,
+  trashCount,
   notice
 }: HeaderProps) {
   const { t, i18n } = useTranslation()
@@ -66,7 +70,11 @@ export const Header = memo(function Header({
       <div className="home-header-actions">
         <div className="home-header-secondary">{createAction}</div>
         <div className="home-header-primary">
-          <UserMenu onShowSettings={onShowSettings} />
+          <UserMenu
+            onShowSettings={onShowSettings}
+            onShowTrash={onShowTrash}
+            trashCount={trashCount}
+          />
         </div>
       </div>
     </header>

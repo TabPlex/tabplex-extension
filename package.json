@@ -2,10 +2,10 @@
   "name": "tabplex",
   "private": true,
   "displayName": "TabPlex",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.33.2",
-  "description": "本次测试范围：切换期间禁用删除，以及工具栏 Popup 与固定 Home 入口",
+  "description": "Local-first, recoverable task workspaces for Chrome and Edge.",
   "author": "TabPlex <contact@tabplex.com>",
   "homepage": "https://tabplex.com/",
   "bugs": {
@@ -118,6 +118,7 @@
     "vitest": "4.1.10"
   },
   "manifest": {
+    "minimum_chrome_version": "109",
     "name": "__MSG_extensionName__",
     "description": "__MSG_extensionDescription__",
     "default_locale": "en",
@@ -125,6 +126,7 @@
     "homepage_url": "https://tabplex.com/",
     "permissions": [
       "alarms",
+      "offscreen",
       "tabs",
       "tabGroups",
       "storage",

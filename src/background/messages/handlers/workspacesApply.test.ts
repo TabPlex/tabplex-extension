@@ -4,6 +4,7 @@ import type { TabSpec, Workspace } from "~core/types"
 import { removeWorkspaceStateEntries } from "~lib/storageQueues"
 import { applyWorkspacesUpdate } from "~lib/workspacesQueue"
 
+import { createAgentCommandHandler } from "../../agentControlCommands"
 import { runWorkspaceDataOperation } from "../../workspaceController"
 import { handleWorkspacesApplyMessage } from "./workspacesApply"
 
@@ -16,7 +17,12 @@ vi.mock("~lib/workspacesQueue", () => ({
 }))
 
 vi.mock("~lib/storageQueues", () => ({
-  removeWorkspaceStateEntries: vi.fn()
+  removeWorkspaceStateEntries: vi.fn(),
+  scheduleWorkspaceStateRemoval: vi.fn(async () => undefined),
+  retryPendingWorkspaceStateRemovals: vi.fn(async () => undefined)
+}))
+vi.mock("../../services/noteDraftMaintenance", () => ({
+  allowPersistedWorkspaceNoteDrafts: vi.fn(async () => undefined)
 }))
 
 vi.mock("../../workspaceController", () => ({
@@ -74,6 +80,153 @@ describe("workspaces-apply flat tab operations", () => {
       )
     })
 
+  it.each(["removeWorkspaceTabs", "moveWorkspaceTabs"] as const)(
+    "Agent %s preserves both workspaces when indexes refer to an older revision",
+    async (command) => {
+      stored = [
+        workspace(
+          "source",
+          [tab("https://b.example"), tab("https://c.example")],
+          { tabsRevision: 2 }
+        ),
+        workspace("target")
+      ]
+      const before = structuredClone(stored)
+      const handler = createAgentCommandHandler({
+        applyWorkspaceOperation: apply
+      } as any)
+      const payload =
+        command === "removeWorkspaceTabs"
+          ? { workspaceId: "source", tabIndexes: [1], expectedTabsRevision: 1 }
+          : {
+              sourceId: "source",
+              targetId: "target",
+              tabIndexes: [1],
+              expectedTabsRevision: 1
+            }
+      await expect(
+        handler({ _tabplexAgent: true, command, payload })
+      ).resolves.toMatchObject({
+        ok: false,
+        error: "workspace-tabs-revision-conflict"
+      })
+      expect(stored).toEqual(before)
+    }
+  )
+
+  it("Agent deletion with the matching revision removes the requested tab", async () => {
+    stored = [
+      workspace(
+        "source",
+        [tab("https://b.example"), tab("https://c.example")],
+        { tabsRevision: 2 }
+      )
+    ]
+    const handler = createAgentCommandHandler({
+      applyWorkspaceOperation: apply
+    } as any)
+    await expect(
+      handler({
+        _tabplexAgent: true,
+        command: "removeWorkspaceTabs",
+        payload: {
+          workspaceId: "source",
+          tabIndexes: [1],
+          expectedTabsRevision: 2
+        }
+      })
+    ).resolves.toMatchObject({ ok: true })
+    expect(stored[0].tabs.map(({ url }) => url)).toEqual(["https://b.example"])
+  })
+
+  it("refuses stale Agent exclusions without changing tabs or timeline", async () => {
+    stored = [
+      workspace(
+        "source",
+        [tab("https://b.example"), tab("https://c.example")],
+        {
+          tabsRevision: 2,
+          history: [
+            {
+              id: "snap",
+              createdAt: 1,
+              tabs: [tab("https://b.example"), tab("https://c.example")]
+            }
+          ]
+        }
+      )
+    ]
+    const before = structuredClone(stored)
+    const handler = createAgentCommandHandler({
+      applyWorkspaceOperation: apply
+    } as any)
+    await expect(
+      handler({
+        _tabplexAgent: true,
+        command: "setTabExcluded",
+        payload: {
+          workspaceId: "source",
+          tabIndexOrUrl: 1,
+          excluded: true,
+          expectedTabsRevision: 1
+        }
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      error: "workspace-tabs-revision-conflict"
+    })
+    expect(stored).toEqual(before)
+    await expect(
+      apply({
+        kind: "exclude-tab",
+        workspaceId: "source",
+        tabIndexOrUrl: 1,
+        excluded: true
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      error: "workspace-tabs-revision-required"
+    })
+    expect(stored).toEqual(before)
+  })
+
+  it("allows a matching indexed exclusion and an exact URL exclusion", async () => {
+    stored = [
+      workspace(
+        "source",
+        [tab("https://b.example"), tab("https://c.example")],
+        { tabsRevision: 2 }
+      )
+    ]
+    await expect(
+      apply({
+        kind: "exclude-tab",
+        workspaceId: "source",
+        tabIndexOrUrl: 1,
+        excluded: true,
+        expectedTabsRevision: 2
+      })
+    ).resolves.toMatchObject({ ok: true })
+    expect(stored[0].tabs[1].excluded).toBe(true)
+    await expect(
+      apply({
+        kind: "exclude-tab",
+        workspaceId: "source",
+        tabIndexOrUrl: "https://b.example",
+        excluded: true
+      })
+    ).resolves.toMatchObject({ ok: true })
+    expect(stored[0].tabs[0].excluded).toBe(true)
+  })
+
+  it("retries context cleanup after the workspace record has already been deleted", async () => {
+    stored = []
+    await expect(
+      apply({ kind: "delete", id: "deleted" })
+    ).resolves.toMatchObject({ ok: true })
+    expect(removeWorkspaceStateEntries).toHaveBeenCalledWith(["deleted"])
+  })
+
   it("creates without coupling persistence to the current window autosave", async () => {
     const created = workspace("created")
 
@@ -100,7 +253,8 @@ describe("workspaces-apply flat tab operations", () => {
       kind: "exclude-tab",
       workspaceId: "source",
       tabIndexOrUrl: 1,
-      excluded: true
+      excluded: true,
+      expectedTabsRevision: 0
     })
     await apply({
       kind: "remove-tab",
@@ -300,7 +454,13 @@ describe("workspaces-apply flat tab operations", () => {
       })
     ).resolves.toEqual({ ok: false, error: "workspaces-apply failed" })
 
-    expect(stored.slice(0, 2)).toEqual(before)
+    expect(stored.slice(0, 2)).toEqual(
+      before.map((item) => ({
+        ...item,
+        tabsRevision: 2,
+        updatedAt: expect.any(Number)
+      }))
+    )
     expect(stored[2]).toBe(unrelated)
   })
 
@@ -329,18 +489,85 @@ describe("workspaces-apply flat tab operations", () => {
     expect(removeWorkspaceStateEntries).not.toHaveBeenCalled()
   })
 
-  it("moves an empty workspace to trash without permanently deleting it", async () => {
-    stored = [workspace("empty")]
+  it.each(["remove", "trash"])(
+    "%s preserves empty workspaces and their context in trash",
+    async (kind) => {
+      stored = [
+        workspace("empty", [], {
+          history: [
+            {
+              id: "earlier",
+              createdAt: 1,
+              tabs: [tab("https://saved.example")]
+            }
+          ]
+        })
+      ]
 
-    await expect(apply({ kind: "trash", id: "empty" })).resolves.toMatchObject({
-      ok: true
+      await expect(apply({ kind, id: "empty" })).resolves.toMatchObject({
+        ok: true
+      })
+
+      expect(stored).toHaveLength(1)
+      expect(stored[0]).toMatchObject({ id: "empty" })
+      expect(stored[0].trashedAt).toEqual(expect.any(Number))
+      expect(removeWorkspaceStateEntries).not.toHaveBeenCalled()
+      expect(stored[0].history?.[0].tabs).toEqual([
+        tab("https://saved.example")
+      ])
+    }
+  )
+
+  it("keeps a later successful rename when an earlier tab mutation rolls back", async () => {
+    stored = [workspace("source", [tab("https://before.example")])]
+    vi.mocked(runWorkspaceDataOperation).mockImplementationOnce(
+      async (task, options) => {
+        await task()
+        await expect(
+          apply({ kind: "rename", id: "source", name: "new name" })
+        ).resolves.toMatchObject({ ok: true })
+        await options?.rollbackOnMaterializeFailure?.()
+        throw new Error("materialization failed")
+      }
+    )
+    await apply({
+      kind: "set-tabs",
+      workspaceId: "source",
+      tabs: [tab("https://after.example")]
     })
-
-    expect(stored).toHaveLength(1)
-    expect(stored[0]).toMatchObject({ id: "empty" })
-    expect(stored[0].trashedAt).toEqual(expect.any(Number))
-    expect(removeWorkspaceStateEntries).not.toHaveBeenCalled()
+    expect(stored[0]).toMatchObject({
+      name: "new name",
+      tabs: [tab("https://before.example")],
+      tabsRevision: 2
+    })
   })
+
+  it.each(["move-tabs", "remove-tab"])(
+    "rejects stale indexed %s requests after autosave changed the list",
+    async (kind) => {
+      stored = [
+        workspace(
+          "source",
+          [tab("https://b.example"), tab("https://c.example")],
+          { tabsRevision: 2 }
+        ),
+        workspace("target")
+      ]
+      const before = structuredClone(stored)
+      await expect(
+        apply({
+          kind,
+          workspaceId: "source",
+          sourceId: "source",
+          targetId: "target",
+          tabIndexes: [1],
+          tabIndexOrUrl: 1,
+          expectedTabsRevision: 1
+        })
+      ).resolves.toMatchObject({ ok: false })
+      expect(stored).toEqual(before)
+    }
+  )
 
   it.each([-1, 1.5, NaN, Number.MAX_SAFE_INTEGER + 1])(
     "rejects an invalid explicit source window before mutating data: %s",

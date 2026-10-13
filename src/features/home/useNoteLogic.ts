@@ -1,15 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
+import { uuid } from "~core/utils"
 import type { useWorkspaceManager } from "~hooks/useWorkspaceManager"
+
+import {
+  clearSavedNoteDraft,
+  persistNoteDraft,
+  type NoteDraftEntry
+} from "./noteDraftJournal"
+import { useNoteDraftRecovery } from "./useNoteDraftRecovery"
 
 export const useNoteLogic = (
   selectedId: string | null,
   workspaceManager: ReturnType<typeof useWorkspaceManager>
 ) => {
   const { workspaceState, setWorkspaceNote } = workspaceManager
+  const { t } = useTranslation()
+  const translateRef = useRef(t)
+  translateRef.current = t
 
-  const [noteDraft, setNoteDraft] = useState("")
+  const [noteDraft, setNoteDraft] = useState<{
+    workspaceId: string | null
+    value: string
+  }>({ workspaceId: null, value: "" })
 
   const noteDraftRef = useRef("")
   const draftByWorkspaceIdRef = useRef<Record<string, string>>({})
@@ -18,6 +33,10 @@ export const useNoteLogic = (
   const selectedIdRef = useRef<string | null>(null)
   const previousSelectedIdRef = useRef<string | null>(null)
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
+  const draftOwnerRef = useRef<string | null>(null)
+  if (!draftOwnerRef.current) draftOwnerRef.current = uuid()
+  const recoveredDraftsRef = useRef<Record<string, NoteDraftEntry>>({})
+  const journalWarningShownRef = useRef(false)
 
   const enqueueSave = useCallback((task: () => Promise<void>) => {
     const next = saveQueueRef.current.then(task, task)
@@ -35,8 +54,11 @@ export const useNoteLogic = (
         (err) => {
           console.warn("[TabPlex] Failed to save note", err)
           const logId = Date.now().toString(36).slice(-5).toUpperCase()
-          toast.error("笔记保存失败", {
-            description: `请稍后重试 (Log ID: ${logId})`,
+          toast.error(translateRef.current("home.note.saveFailed"), {
+            description: translateRef.current(
+              "home.note.saveFailedDescription",
+              { logId }
+            ),
             duration: 4000
           })
           return false
@@ -52,10 +74,16 @@ export const useNoteLogic = (
 
       delete dirtyByWorkspaceIdRef.current[id]
       delete draftByWorkspaceIdRef.current[id]
+      clearSavedNoteDraft(id, draftOwnerRef.current!, intendedValue)
+      const recovered = recoveredDraftsRef.current[id]
+      if (recovered) {
+        clearSavedNoteDraft(id, recovered.ownerId, recovered.value)
+        delete recoveredDraftsRef.current[id]
+      }
 
       if (selectedIdRef.current === id) {
         noteDraftRef.current = intendedValue
-        setNoteDraft(intendedValue)
+        setNoteDraft({ workspaceId: id, value: intendedValue })
       }
       return true
     },
@@ -103,14 +131,42 @@ export const useNoteLogic = (
       if (value === noteDraftRef.current) {
         return
       }
-      setNoteDraft(value)
+      setNoteDraft({ workspaceId: selectedId, value })
       noteDraftRef.current = value
       if (!selectedId) return
       draftByWorkspaceIdRef.current[selectedId] = value
       dirtyByWorkspaceIdRef.current[selectedId] = true
+      const persisted = persistNoteDraft(
+        selectedId,
+        draftOwnerRef.current!,
+        value
+      )
+      if (!persisted && !journalWarningShownRef.current) {
+        journalWarningShownRef.current = true
+        toast.error(translateRef.current("home.note.draftStorageFailed"), {
+          duration: Infinity
+        })
+      } else if (persisted) {
+        journalWarningShownRef.current = false
+      }
       scheduleNoteSave(selectedId, value)
     },
     [scheduleNoteSave, selectedId]
+  )
+
+  const restoreDraft = useCallback(
+    (entry: NoteDraftEntry) => {
+      if (selectedIdRef.current !== entry.workspaceId) return
+      recoveredDraftsRef.current[entry.workspaceId] = entry
+      handleNoteChange(entry.value)
+    },
+    [handleNoteChange]
+  )
+  useNoteDraftRecovery(
+    selectedId,
+    selectedId ? (workspaceState.notes?.[selectedId] ?? "") : "",
+    draftOwnerRef.current,
+    restoreDraft
   )
 
   useEffect(() => {
@@ -128,8 +184,11 @@ export const useNoteLogic = (
       ) {
         draftByWorkspaceIdRef.current[currentId] = pendingDraft
         dirtyByWorkspaceIdRef.current[currentId] = true
-        selectedIdRef.current = null
-        void flushNoteSave(currentId, pendingDraft)
+      }
+      selectedIdRef.current = null
+      for (const id of Object.keys(dirtyByWorkspaceIdRef.current)) {
+        const value = draftByWorkspaceIdRef.current[id]
+        if (typeof value === "string") void flushNoteSave(id, value)
       }
     }
   }, [flushNoteSave])
@@ -174,7 +233,7 @@ export const useNoteLogic = (
         noteSaveTimerRef.current = null
       }
       noteDraftRef.current = nextNote
-      setNoteDraft(nextNote)
+      setNoteDraft({ workspaceId: currentId, value: nextNote })
       return
     }
 
@@ -185,13 +244,22 @@ export const useNoteLogic = (
     ) {
       if (remoteNote !== currentDraft) {
         noteDraftRef.current = remoteNote
-        setNoteDraft(remoteNote)
+        setNoteDraft({ workspaceId: currentId, value: remoteNote })
       }
     }
   }, [flushNoteSave, selectedId, workspaceState.notes])
 
   return {
-    noteDraft,
+    // The document identity and its draft must move together, including renders
+    // that run after selection effects but before their state update commits.
+    noteDraft:
+      selectedId !== noteDraft.workspaceId
+        ? selectedId
+          ? (draftByWorkspaceIdRef.current[selectedId] ??
+            workspaceState.notes?.[selectedId] ??
+            "")
+          : ""
+        : noteDraft.value,
     handleNoteChange,
     flushPendingNotes
   }

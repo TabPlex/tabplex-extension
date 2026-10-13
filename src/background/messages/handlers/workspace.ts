@@ -130,6 +130,7 @@ export const handleWorkspaceStatePatchMessage: BackgroundMessageHandler = (
     () => applyWorkspaceStatePatchWithMerge(patch),
     {
       onSuccess: () => ({ ok: true }),
+      publicErrors: ["workspace-note-target-not-found"],
       fallbackError: "workspace-state-patch failed"
     }
   )

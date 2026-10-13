@@ -33,9 +33,11 @@ import {
   colorChoices,
   resolveWorkspaceColor
 } from "~core/utils/colors"
+import { useWorkspaceSearchProjection } from "~features/home/useWorkspaceSearchProjection"
 import {
   canCreatePopupWorkspace,
   clampPopupActiveIndex,
+  getDefaultSearchActionIndex,
   movePopupActiveIndex,
   resolvePopupNavigationAction
 } from "~features/popup/popupNavigation"
@@ -55,7 +57,6 @@ import {
   readCachedThemePreference
 } from "~lib/common"
 import { cn } from "~lib/utils"
-import { groupWorkspacesByRecency } from "~shared/logic"
 
 import "~styles/tailwind.css"
 import "~styles/popup.css"
@@ -314,19 +315,12 @@ const QuickSwitcher = () => {
   }, [resolvedTheme])
 
   const activeId = workspaceState.activeWorkspaceId
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return sortedWorkspaces
-    return sortedWorkspaces.filter((t) =>
-      (t.name || "").toLowerCase().includes(q)
-    )
-  }, [sortedWorkspaces, query])
-  // 不再置顶“当前”，仅用于标记当前项
-  const groupedByRecency = useMemo(() => {
-    const sortKey =
-      settings?.workspaceSort ?? DEFAULT_SETTINGS.workspaceSort ?? "lastUsed"
-    return groupWorkspacesByRecency(filtered, sortKey)
-  }, [filtered, settings?.workspaceSort])
+  const { groupedWorkspaces: groupedByRecency } = useWorkspaceSearchProjection({
+    query,
+    workspaces: sortedWorkspaces,
+    settings,
+    workspaceState
+  })
   const listItems = useMemo<PopupWorkspaceListItem[]>(() => {
     return groupedByRecency.flatMap((group, index) => [
       {
@@ -363,8 +357,21 @@ const QuickSwitcher = () => {
     const currentWorkspaceIndex = activeId
       ? workspaceIndexById.get(activeId)
       : undefined
-    setActiveActionIndex(query.trim() ? 0 : (currentWorkspaceIndex ?? 0))
-  }, [activeId, query, workspaceIndexById])
+    setActiveActionIndex(
+      query.trim()
+        ? getDefaultSearchActionIndex(
+            navigableWorkspaces.length,
+            canCreateFromQuery
+          )
+        : (currentWorkspaceIndex ?? 0)
+    )
+  }, [
+    activeId,
+    query,
+    workspaceIndexById,
+    canCreateFromQuery,
+    navigableWorkspaces.length
+  ])
 
   useEffect(() => {
     setActiveActionIndex((current) =>
@@ -405,6 +412,14 @@ const QuickSwitcher = () => {
     const workspace = navigableWorkspaces[action.workspaceIndex]
     if (workspace) void handleSelectWorkspace(workspace)
   }
+
+  useEffect(() => {
+    if (activeOptionId) {
+      document
+        .getElementById(activeOptionId)
+        ?.scrollIntoView({ block: "nearest" })
+    }
+  }, [activeOptionId])
 
   return (
     <div className="tg-root">
