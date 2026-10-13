@@ -60,3 +60,8 @@ jobs:
           pnpm verify:artifacts --
           build/chrome-mv3-prod
           build/edge-mv3-prod
+      - name: Package and verify Chrome Web Store upload
+        run: |
+          pnpm package:chrome
+          pnpm package:chrome:web-store
+          pnpm verify:web-store-artifacts

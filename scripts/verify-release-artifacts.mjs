@@ -189,6 +189,11 @@ const deriveExtensionId = (manifestKey) => {
 }
 
 const verifyExtensionIdentity = (artifact, manifest) => {
+  if (webStoreMode) {
+    if (Object.hasOwn(manifest, "key"))
+      reportFailure(artifact, "Chrome 商店上传产物不得包含 manifest.key")
+    return
+  }
   const extensionId = deriveExtensionId(manifest.key)
   if (!extensionId) {
     reportFailure(artifact, "manifest.key 缺失或不是规范的 Base64 公钥")
@@ -491,12 +496,23 @@ const verifyZipPair = (directory, directoryFiles, zipPath) => {
 const parseArguments = () => {
   const args = process.argv.slice(2)
   const releaseMode = args.includes("--release")
+  const webStoreMode = args.includes("--web-store")
   const unknownOptions = args.filter(
-    (arg) => arg.startsWith("--") && !["--", "--release"].includes(arg)
+    (arg) =>
+      arg.startsWith("--") && !["--", "--release", "--web-store"].includes(arg)
   )
   for (const option of unknownOptions) reportFailure("参数", `不支持 ${option}`)
   const paths = args.filter((arg) => arg !== "--" && !arg.startsWith("--"))
-  return { releaseMode, paths: paths.length > 0 ? paths : DEFAULT_ARTIFACTS }
+  return {
+    releaseMode,
+    webStoreMode,
+    paths:
+      paths.length > 0
+        ? paths
+        : webStoreMode
+          ? ["build/chrome-web-store-prod"]
+          : DEFAULT_ARTIFACTS
+  }
 }
 
 const validateReleaseTag = (releaseMode) => {
@@ -519,7 +535,7 @@ const normalizeArtifactPair = (path) => {
   return { directory: path, zipPath: `${path}.zip`, explicitZip: false }
 }
 
-const { releaseMode, paths } = parseArguments()
+const { releaseMode, webStoreMode, paths } = parseArguments()
 validateReleaseTag(releaseMode)
 const pairs = new Map()
 

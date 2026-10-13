@@ -31,6 +31,7 @@
     "build:edge": "plasmo build --target=edge-mv3 && node ./scripts/copy-release-legal.mjs build/edge-mv3-prod",
     "package": "pnpm package:chrome",
     "package:chrome": "node ./scripts/copy-release-legal.mjs build/chrome-mv3-prod && plasmo package --target=chrome-mv3",
+    "package:chrome:web-store": "node ./scripts/package-web-store.mjs",
     "package:edge": "node ./scripts/copy-release-legal.mjs build/edge-mv3-prod && plasmo package --target=edge-mv3",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -46,6 +47,7 @@
     "smoke:extension-pages": "node ./scripts/smoke-extension-pages.mjs",
     "verify:artifacts": "node ./scripts/verify-release-artifacts.mjs",
     "verify:release-artifacts": "node ./scripts/verify-release-artifacts.mjs --release",
+    "verify:web-store-artifacts": "node ./scripts/verify-release-artifacts.mjs --release --web-store",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "pnpm": {

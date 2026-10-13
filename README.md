@@ -109,6 +109,11 @@ Tests protect stable behavior such as storage and backup contracts, message
 handlers, queues, switching state machines, and high-cost interactions. Read the
 [testing standards](./docs/testing-standards.md) before adding tests.
 
+For Chrome Web Store submission, run `pnpm package:chrome:web-store` after the
+Chrome build and verify it with `pnpm verify:web-store-artifacts`. Upload
+`build/chrome-web-store-prod.zip`. This package omits `manifest.key`; the regular
+Chrome/Edge installation packages retain it to preserve their extension ID.
+
 ## Optional local Agent control
 
 Agent control is disabled by default. It uses Chrome Native Messaging and a

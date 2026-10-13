@@ -102,6 +102,10 @@ pnpm package:edge
 测试只保护稳定业务契约，例如存储与备份、消息处理、队列、切换状态机和高代价
 交互。新增测试前请阅读[测试规范](./docs/testing-standards.md)。
 
+提交 Chrome 应用商店时，在 Chrome 构建后运行 `pnpm package:chrome:web-store`，
+再运行 `pnpm verify:web-store-artifacts`。上传 `build/chrome-web-store-prod.zip`。
+商店包移除 `manifest.key`；普通 Chrome/Edge 安装包保留公钥以固定扩展 ID。
+
 ## 可选本地 Agent 控制
 
 Agent 控制默认关闭。它使用 Chrome Native Messaging 和仅限当前用户访问的 Unix
